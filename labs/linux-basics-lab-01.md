@@ -7,9 +7,9 @@ Practice basic Linux + networking troubleshooting commands over SSH.
 - Ubuntu Server VM in UTM (ARM64)
 - SSH enabled and accessible from macOS Terminal
 - All commands were run on the VM, from an SSH session in macOS Terminal.
-- VM hostname: `stephen-lab`
-- VM IP (NAT): `192.168.64.2`
-- Gateway: `192.168.64.1`
+- VM hostname: <vm-hostname>
+- VM IP (NAT): <vm-ip>
+- Gateway: <gateway>
 
 ## Commands I ran
 - `whoami`
@@ -55,7 +55,7 @@ hostname
 
 **Output:**
 ```
-stephen-lab
+<vm-hostname>
 ```
 
 **Meaning:**  
@@ -95,7 +95,7 @@ systemctl status ssh --no-pager
 Loaded: ... enabled
 Active: active (running)
 Server listening on 0.0.0.0 port 22.
-Accepted password for stephen from 192.168.64.1 ...
+Accepted password for stephen from <host-ip> ...
 ```
 
 **Meaning:**  
@@ -163,14 +163,14 @@ ip route
 
 **Output (from my run):**
 ```
-default via 192.168.64.1 dev enp0s1 src 192.168.64.2
-192.168.64.0/24 dev enp0s1 scope link src 192.168.64.2
+default via <gateway> dev enp0s1 src <vm-ip>
+<vm-subnet>/24 dev enp0s1 scope link src <vm-ip>
 ```
 
 **Meaning:**  
 - The default route is how the VM reaches the internet.
-- 192.168.64.1 is the NAT gateway.
-- 192.168.64.2 is the VM's IP.
+- <gateway> is the NAT gateway.
+- <vm-ip> is the VM's IP.
 
 ---
 
@@ -247,9 +247,9 @@ Shows the network path (hops) from the VM to the destination. `*` hops are norma
 
 ## Key observations (short)
 
-- **hostname** returned: `stephen-lab`
-- **Default route gateway:** `192.168.64.1` (UTM NAT)
-- **VM IP:** `192.168.64.2`
+- **hostname** returned: `<vm-hostname>`
+- **Default route gateway:** `<gateway>` (UTM NAT)
+- **VM IP:** `<vm-ip>`
 - **SSH listening** on port 22 (`ss -tulpn` showed `0.0.0.0:22`)
 - **curl -I https://example.com** succeeded (HTTP status returned)
 
