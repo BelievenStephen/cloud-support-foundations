@@ -217,3 +217,132 @@ Network infrastructure is the "platform" that enables communication. It includes
 - Network infrastructure consists of end devices, intermediate devices, and network media.
 - ISPs connect local networks to the global internet. Common home connections are cable or DSL, with other options like cellular and satellite depending on location.
 
+
+## Module 3: Wireless and Mobile Networks - Feb 6, 2026
+
+### Module objective
+Configure a mobile device for wireless access and understand common wireless network types.
+
+### Wireless network types used by mobile devices
+
+**Cellular (GSM, 3G/4G/5G):**
+- Uses towers and radio waves for voice, text, and data.
+- Newer generations (4G/5G) are optimized for higher-speed data.
+
+**GPS:**
+- Uses satellites so a phone can calculate location (often within about 10 meters).
+
+**Wi-Fi:**
+- Connects to local networks through a wireless access point within range.
+- Public Wi-Fi areas are "hotspots."
+
+**Bluetooth:**
+- Short-range, low-power wireless for accessories and device-to-device links.
+- Supports multiple devices at once (up to ~8 connections).
+
+**NFC:**
+- Very short-range communication (a few centimeters).
+- Common for tap-to-pay and quick device pairing.
+
+### Mobile devices and Wi-Fi (practical points)
+
+Use Wi-Fi when available to:
+- avoid cellular data usage
+- reduce battery use (Wi-Fi radio often uses less power than cellular)
+
+**Basic Wi-Fi security practices:**
+- avoid sending passwords in plaintext
+- use a VPN when sending sensitive data on public Wi-Fi
+- secure home Wi-Fi
+- use WPA2 or higher encryption
+
+### Wi-Fi connection behavior on phones
+- Turn on Wi-Fi → device scans and lists nearby networks → select SSID → enter password if required.
+- Devices typically auto-connect to known networks.
+- If Wi-Fi is out of range, the device falls back to cellular data (if enabled).
+
+### Manual Wi-Fi configuration (when auto-connect fails)
+
+**Common reasons:**
+- SSID broadcast is disabled (hidden network)
+- device is not set to auto-join
+
+**Key terms:**
+- **SSID:** network name
+- **Passphrase:** Wi-Fi password
+
+**Important detail:** SSID and passphrase must match exactly.
+
+### Cellular data settings (high level)
+- Most users rely on cellular data only when Wi-Fi is unavailable.
+- Phones switch between cellular generations (ex: 4G to 3G) as coverage changes, usually without obvious interruption.
+
+### Bluetooth basics and pairing
+
+Bluetooth is useful when cables are not practical (headsets, speakers, peripherals).
+
+**Common uses:**
+- hands-free headset
+- keyboard/mouse
+- car stereo/speakerphone
+- tethering (sharing a connection)
+- portable speakers
+
+**Pairing process:**
+- enable Bluetooth on both devices
+- set accessory to discoverable/visible
+- scan/select device
+- enter a PIN/passkey if prompted (often stored for future auto-connect)
+
+**Discoverable devices can advertise:**
+- name, class, available services, supported features/spec versions
+
+---
+
+## Module 4: Build a Home Network (start)
+
+### Module objective
+Configure an integrated wireless router and wireless client to connect securely to the internet.
+
+### Home network basics
+- A home network can include PCs, consoles, smart TVs, printers/scanners, cameras, phones, and smart-home devices.
+
+**Typical home router ports:**
+- **LAN/Ethernet ports:** connect internal devices to the same local network (built-in switch)
+- **Internet/WAN port:** connects the router to the ISP/modem and a different network (the outside network)
+
+Many home routers also include a built-in wireless access point. Wireless clients usually join the same LAN as wired clients.
+
+### Network technologies in the home
+- Common Wi-Fi frequencies: 2.4 GHz and 5 GHz (unlicensed bands).
+- Bluetooth also uses 2.4 GHz, but is designed for short-range, lower-speed connections.
+- Wi-Fi (802.11) uses higher power than Bluetooth, giving better range and throughput.
+
+### Wired network technologies (overview)
+
+Ethernet is the most common wired LAN approach.
+
+**Common media:**
+- **Cat 5e (UTP):** 4 twisted pairs to reduce interference
+- **Coax:** inner conductor + insulating layer + shield + jacket
+- **Fiber optic:** glass/plastic strands, very high bandwidth, long distance
+
+### Wireless standards and Wi-Fi
+- IEEE creates wireless standards. 802.11 governs WLAN (Wi-Fi).
+- Wi-Fi Alliance tests interoperability. Wi-Fi logo implies devices should work together.
+
+### Common wireless router settings
+
+**Network mode:** 802.11b/g/n or mixed mode
+
+**SSID (network name):** case-sensitive, up to 32 characters
+
+**Channel:** auto or manual
+
+**SSID broadcast:** whether the network name is advertised
+
+**Notes:**
+- Mixed mode helps older devices connect.
+- Disabling SSID broadcast does not secure a network by itself. Strong encryption is still required.
+
+
