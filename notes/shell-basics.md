@@ -1,4 +1,8 @@
-# MIT Missing Semester: Intro to Shell (Feb 6, 2026)
+# MIT Missing Semester: Intro to Shell
+
+## Feb 6, 2026
+
+---
 
 ## What the shell is
 
@@ -187,3 +191,187 @@ awk '{print $2}' file
 ## Key Idea
 
 - Shell power comes from combining small commands to get a result.
+
+---
+
+# Feb 7, 2026
+
+## Pipes and composition
+
+- A pipe (`|`) sends the stdout (output) of one command into the stdin (input) of the next command.
+- This works because many CLI tools read from stdin when no file is provided.
+- Pipes let you compose simple tools into powerful workflows.
+
+**Example pattern:**
+
+```bash
+command1 | command2 | command3
+```
+
+---
+
+## Redirects (save output, feed input)
+
+- `> file` writes stdout to a file (overwrites).
+- `>> file` appends stdout to a file.
+- `< file` uses a file as stdin (instead of your keyboard).
+
+**Common examples:**
+
+```bash
+echo "hello" > out.txt
+echo "more" >> out.txt
+sort < out.txt
+```
+
+---
+
+## Conditionals (run something only if another command succeeds)
+
+**Bash pattern:**
+
+```bash
+if command1; then
+  command2
+  command3
+fi
+```
+
+- `command1` runs first.
+- If it succeeds (exit code 0), the `then` block runs.
+- Often `command1` is `test` or `[ ... ]`, like "file exists" or "strings match".
+
+**Common tests:**
+
+```bash
+[ -f file ]          # file exists
+[ "$var" = "text" ]  # string equals
+```
+
+---
+
+## Loops
+
+### while loop
+
+```bash
+while command1; do
+  command2
+done
+```
+
+- Repeats as long as `command1` succeeds.
+
+### for loop
+
+```bash
+for x in a b c; do
+  echo "$x"
+done
+```
+
+---
+
+## Command substitution
+
+- `$(...)` runs a command and substitutes its output into the current command.
+- Prefer `$(...)` over old backticks.
+
+**Example:**
+
+```bash
+for i in $(seq 1 10); do
+  echo "$i"
+done
+```
+
+---
+
+## Shell scripts (.sh files)
+
+- You can type long commands in the terminal, but scripts are cleaner and reusable.
+- Scripts often start with a shebang so the system knows what interpreter to use:
+  - `#!/bin/bash` runs the file using bash.
+
+### Making scripts safer (strict mode)
+
+```bash
+set -euo pipefail
+```
+
+- `-e`: exit if a command fails
+- `-u`: error on unset variables
+- `-o pipefail`: fail if any command in a pipeline fails
+
+---
+
+## Background jobs
+
+- Adding `&` runs a command in the background so you can keep using the terminal.
+
+**Example:**
+
+```bash
+some_long_command &
+```
+
+---
+
+## Exercises
+
+### Setup / basics
+
+- Check you're using a Unix shell: `echo $SHELL`
+- Use `man` pages to learn flags (example: `man ls`)
+
+### `ls -l` output
+
+- Understand file type + permissions from the first characters in `ls -l`.
+
+### Globs (pattern matching)
+
+- Patterns like `*.txt`, `file?.txt`, `{a,b}.txt` to match filenames.
+
+### Quoting
+
+- Difference between single quotes, double quotes, and ANSI quotes.
+- How to safely include special characters like `$`, `!`, and newlines.
+
+### stdin / stdout / stderr
+
+- Separate normal output vs errors using redirects.
+- Practice redirecting both streams to the same file.
+
+### Exit codes and chaining
+
+- `$?` is last exit status (0 = success).
+- `&&` runs next only on success, `||` runs next only on failure.
+
+### Why `cd` is built-in
+
+- `cd` must change the shell's own working directory (a child process can't change its parent's state).
+
+### Simple scripting practice
+
+- Use `$1` (first argument), `test -f`, and branching.
+- Use `chmod +x` to make a script executable, and understand why that matters.
+
+### Debugging scripts
+
+- Adding `-x` to `set` prints commands as they run, useful for debugging.
+
+### Practical text processing
+
+- Use pipes with tools like `find`, `grep`, `sed`, `awk`, `sort`, `uniq`, `head/tail`.
+- Learn `xargs` as another way to pass stdin lines as command arguments.
+
+### Working with web + JSON
+
+- `curl` to fetch content, `grep` to count patterns.
+- `jq` to filter JSON fields based on conditions.
+
+### Applied pipeline thinking
+
+- Break down a multi-step SSH log pipeline.
+- Build something similar from your own shell history.
+
