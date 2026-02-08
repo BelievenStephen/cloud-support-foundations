@@ -345,4 +345,60 @@ Ethernet is the most common wired LAN approach.
 - Mixed mode helps older devices connect.
 - Disabling SSID broadcast does not secure a network by itself. Strong encryption is still required.
 
+---
+
+## Module 4: Build a Home Network (cont'd) - Feb 8, 2026
+
+### Set Up a Home Router (4.4)
+
+#### First-time setup (basic process)
+
+- Many home routers include an automatic setup utility.
+- Initial setup often uses a wired connection from a PC/laptop to a LAN/Ethernet port on the router (not the Internet/WAN port).
+- The Internet/WAN port connects the router to the modem/ISP network.
+- Some routers have a built-in modem. Connection types:
+  - Cable often uses coax.
+  - DSL often uses an RJ-11 phone-style cable.
+- After connecting, the computer needs an IP address:
+  - Usually provided automatically by the router's built-in DHCP server.
+  - If no IP is received, you may need to configure: IP address, subnet mask, default gateway, DNS (per router docs).
+
+#### Design considerations (before configuring)
+
+**SSID naming:**
+- If SSID broadcast is enabled, nearby devices can see the network name.
+- Avoid including router brand/model in the SSID since it can reveal info that helps attackers find defaults/known weaknesses.
+
+**Device compatibility and Wi-Fi standards:**
+- Devices support different 802.11 standards (ex: b/g/n/ac).
+- If the router is set to only allow newer standards, older devices may not connect.
+- "Legacy mode" or "mixed mode" supports older devices but may reduce maximum performance.
+
+**Adding new devices and access control:**
+- Decide who should be able to join your network.
+- Many routers support guest networks/guest SSIDs that allow internet access but restrict access to your internal LAN.
+
+### Module 4 summary (4.5)
+
+**What I learned:**
+
+- Home networks typically connect a private home LAN to the public ISP network through a router (often with both wired + wireless).
+- Common home Wi-Fi uses unlicensed 2.4 GHz and 5 GHz bands.
+  - Bluetooth uses 2.4 GHz and is designed for short-range, low-power connections.
+  - Wi-Fi (802.11) generally uses higher power for better range/throughput.
+- Wired networking is still useful for stable performance. Common media:
+  - Ethernet over Cat5e (UTP) is common for LANs.
+  - Other options include coax and fiber, plus alternatives like powerline adapters where Ethernet wiring is not present.
+- Wi-Fi standards:
+  - IEEE 802.11 defines WLAN (Wi-Fi) standards.
+  - Wi-Fi Alliance tests interoperability between vendors.
+- Common router settings:
+  - Network mode (b/g/n/ac or mixed)
+  - SSID (network name, case-sensitive, up to 32 chars)
+  - Channel (auto/manual)
+  - SSID broadcast (whether the SSID is advertised)
+- Security and usability tradeoffs:
+  - Mixed/legacy modes help old devices connect but can reduce performance.
+  - SSID broadcast off does not equal secure. Use strong security settings and control access (guest SSID as needed).
+
 
