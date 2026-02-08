@@ -87,3 +87,103 @@ The course focuses on three distro families because most Linux systems you will 
 - **Shell / command line:** text interface and interpreter (bash, zsh, etc.).
 
 ---
+
+## Feb 8, 2026
+
+## Chapter 3 (continued): Linux distributions
+
+- A Linux distribution is more than the kernel. It includes the kernel plus tools for:
+  - file operations
+  - user management
+  - package management (install/update software)
+- Distros can use different kernel versions. Enterprise distros often pick older kernels for stability and backport improvements.
+  - Example idea: RHEL 8 uses an older but stable kernel line, RHEL 9 uses a newer one.
+- Distributions bundle "core ingredients" needed for a full system:
+  - compilers (C/C++ / clang), debugger (gdb)
+  - system libraries apps depend on
+  - graphics stack + desktop environment (if a GUI is included)
+  - update services + a baseline set of apps
+
+### Commercial vs community support
+
+- Large organizations often choose paid/support-backed distros:
+  - Red Hat (RHEL), SUSE, Canonical (Ubuntu)
+- Common "RHEL-like" options:
+  - CentOS used to be the free RHEL alternative. After 2021, it shifted to CentOS Stream.
+  - Newer RHEL-compatible alternatives: AlmaLinux and Rocky Linux
+- "Binary compatible" (RHEL family) means packages often install/run across those variants.
+
+### Chapter 3 key takeaways
+
+- Linux is UNIX-like, multi-user, multitasking, with networking and background services ("daemons").
+- Common terms: kernel, distribution, boot loader, service, filesystem, X Window system, desktop environment, command line.
+- A distro = kernel + tools + package/update system + typical apps.
+
+---
+
+## Chapter 4: Linux basics and system startup (boot process)
+
+### Why this matters
+
+- Understanding boot steps helps troubleshooting (especially when a system will not start cleanly).
+
+### High-level boot flow
+
+Power on → BIOS/UEFI → boot loader (ex: GRUB) → kernel → initramfs → `/sbin/init` → login (text or GUI)
+
+### BIOS/UEFI and the boot loader
+
+- BIOS runs hardware checks (POST) and initializes basic devices.
+- Control then passes to the boot loader:
+  - On BIOS/MBR systems: boot loader starts from the MBR.
+  - On UEFI systems: firmware uses the EFI partition and boot manager entries.
+- Boot loader loads:
+  - the kernel image
+  - the initramfs (initial RAM filesystem with early drivers/tools)
+
+### initramfs
+
+- Used to load drivers and mount the real root filesystem.
+- After root filesystem is mounted successfully, initramfs is released from memory and the system runs `/sbin/init`.
+
+### `/sbin/init` and system startup
+
+- `init` becomes the "parent" of most user-space processes and is responsible for:
+  - starting services
+  - keeping services running
+  - clean shutdown/restart behavior
+- Modern distros use systemd as the init system.
+  - `/sbin/init` typically points to systemd now.
+
+### Why systemd replaced older init methods
+
+- Older SysVinit was sequential and slow. systemd uses more parallel startup.
+- systemd uses simpler unit config files instead of large startup scripts.
+
+### Basic systemd service commands (pattern)
+
+**Start/stop/restart:**
+
+```bash
+sudo systemctl start|stop|restart <service>
+```
+
+**Enable/disable at boot:**
+
+```bash
+sudo systemctl enable|disable <service>
+```
+
+**Status:**
+
+```bash
+sudo systemctl status <service>
+```
+
+### Lab exercise
+
+- Check Apache (`httpd`) status, stop/start it, verify with `systemctl status`.
+
+---
+
+
