@@ -375,3 +375,184 @@ some_long_command &
 - Break down a multi-step SSH log pipeline.
 - Build something similar from your own shell history.
 
+---
+
+# Feb 8, 2026
+
+## Command-line Environment
+
+### Big idea
+
+- Shell scripts are not just "command launchers". They are a small programming language built around running programs and connecting them using shared conventions.
+
+---
+
+## Core concepts CLI programs use
+
+- Arguments
+- Streams (stdin, stdout, stderr)
+- Environment variables
+- Return codes (exit codes)
+- Signals (interrupt/terminate)
+
+---
+
+## Arguments
+
+- Programs receive arguments as strings.
+- Example: `ls -l folder/` runs `/bin/ls` with args `-l` and `folder/`.
+
+### Script argument variables
+
+- `$0` = script name
+- `$1..$9` = positional args
+- `$@` = all args (list)
+- `$#` = number of args
+
+### Flags
+
+- Short: `-a`, `-l` (often combinable: `-la`)
+- Long: `--all`, `--help`, `--version`, `--verbose`
+- Flag order usually does not matter.
+
+### Variable number of args
+
+- Many commands accept multiple targets: `mkdir src docs`
+
+---
+
+## Globbing (shell expands patterns before running the program)
+
+- `*` = zero or more characters
+- `?` = exactly one character
+- `{a,b,c}` = expands to multiple items
+
+**Examples:**
+
+```bash
+rm *.py                          # expands to matching files (program never sees *.py)
+touch folder/{a,b,c}.py          # creates a.py b.py c.py
+mv *{.py,.sh} folder             # moves all .py and .sh
+```
+
+---
+
+## Streams and pipelines
+
+- A pipeline like `cat file | grep ... | uniq ...` runs processes concurrently.
+- `stdin` = standard input
+- `stdout` = standard output (what pipes forward)
+- `stderr` = error output (not piped by default)
+
+### "Read from stdin" convention
+
+- Many tools accept `-` meaning "read from stdin".
+
+### Redirection basics
+
+- `>` overwrite stdout to file
+- `>>` append stdout to file
+- `2>` redirect stderr
+- `&>` redirect stdout+stderr
+- `<` redirect file into stdin
+- `/dev/null` discards output
+  - Example: `cmd > /dev/null 2>&1`
+
+### Tool mention
+
+- `fzf` reads from stdin and provides an interactive filter/select UI.
+
+---
+
+## Variables and environment variables
+
+### Shell variables
+
+**Set:**
+
+```bash
+foo=bar    # no spaces
+```
+
+**Read:**
+
+```bash
+$foo
+```
+
+**Quoting:**
+
+- `"..."` expands variables and substitutions
+- `'...'` is literal, no expansion
+
+### Command substitution
+
+```bash
+files=$(ls)    # captures stdout into a variable
+```
+
+### Process substitution
+
+- `<(CMD)` runs CMD and provides a temp file path to programs that require a filename.
+
+**Example:**
+
+```bash
+diff <(ls src) <(ls docs)
+```
+
+### Environment variables
+
+**View:**
+
+```bash
+printenv
+```
+
+**Set for one command only:**
+
+```bash
+TZ=Asia/Tokyo date    # does not persist
+```
+
+**Persist for current shell + children:**
+
+```bash
+export DEBUG=1
+```
+
+**Remove:**
+
+```bash
+unset DEBUG
+```
+
+---
+
+## Return codes (exit codes)
+
+- Convention: `0` = success, nonzero = failure.
+- Check last exit code: `echo $?`
+- Exit in scripts: `exit 1` (or other number)
+
+### Conditional execution with exit codes
+
+- `cmd1 && cmd2` runs `cmd2` only if `cmd1` succeeded
+- `cmd1 || cmd2` runs `cmd2` only if `cmd1` failed
+
+**Examples:**
+
+```bash
+grep -q "pattern" file && echo "Found"
+grep -q "pattern" file || echo "Not found"
+```
+
+**Note:** `if` and `while` also use command return codes for control flow.
+
+---
+
+## Signals (intro)
+
+- `Ctrl+C` usually stops a running program by sending an interrupt signal.
+- Sometimes it does not stop a program, depending on how the program handles signals.
+
