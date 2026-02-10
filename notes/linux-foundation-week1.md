@@ -186,4 +186,226 @@ sudo systemctl status <service>
 
 ---
 
+## Feb 10, 2026
+
+## Chapter 4 (continued): Linux filesystem basics
+
+### Linux filesystems
+
+**Concept analogy:**  
+Libraries organize books and media into sections by subject, audience, type, and frequency of use. A filesystem applies the same concept to storing and organizing data in a human-usable form.
+
+### Different types of filesystems supported by Linux
+
+- **Conventional disk filesystems:** ext3, ext4, XFS, Btrfs, JFS, NTFS, vfat, exfat, etc.
+- **Flash storage filesystems:** ubifs, jffs2, yaffs, etc.
+- **Database filesystems**
+- **Special purpose filesystems:** procfs, sysfs, tmpfs, squashfs, debugfs, fuse, etc.
+
+---
+
+### Partitions and filesystems
+
+**Key definitions:**
+
+- **Partition:** A dedicated subsection of physical storage media. Historically a physically contiguous portion of a hard disk. Today's storage can be more complex, but we still treat a partition as a fixed area.
+- **Filesystem:** A method of storing and accessing files.
+
+**Relationship:**  
+A partition is a container in which a filesystem resides. In some cases, a filesystem can span multiple partitions using symbolic links.
+
+### Comparison: Windows vs Linux
+
+| Component | Windows | Linux |
+|-----------|---------|-------|
+| Partition | Disk1 | `/dev/sda1` |
+| Filesystem type | NTFS/VFAT | EXT3/EXT4/XFS/BTRFS... |
+| Mounting parameters | DriveLetter | MountPoint |
+| Base folder (where OS is stored) | `C:\` | `/` |
+
+---
+
+### The Filesystem Hierarchy Standard (FHS)
+
+- Linux systems organize files according to the **Filesystem Hierarchy Standard (FHS)**, maintained by the Linux Foundation.
+- **Purpose:** Ensures users, admins, and developers can move between distributions without re-learning system organization.
+
+**Key differences from Windows:**
+
+- Linux uses `/` to separate paths (not `\`)
+- No drive letters
+- Multiple drives/partitions are mounted as directories in the single filesystem
+
+**Removable media locations:**
+
+- **Modern systems:** `/run/media/yourusername/disklabel`
+- **Older distributions:** `/media`
+
+**Example:**  
+If username is `student` and USB drive is labeled `FEDORA`:
+- Mount point: `/run/media/student/FEDORA`
+- File path: `/run/media/student/FEDORA/README.txt`
+
+---
+
+### More about the Filesystem Hierarchy Standard
+
+**Case sensitivity:**  
+All Linux filesystem names are case-sensitive.
+- `/boot`, `/Boot`, and `/BOOT` are three different directories.
+
+**Organization pattern:**
+
+- Core utilities needed for system operation are in root directories
+- Other programs are in directories under `/usr` (think "user")
+- Compare subdirectories under `/usr` with those directly under `/` to see the organization pattern
+
+---
+
+## Chapter 4 (continued): Linux distribution installation
+
+### Choosing a Linux distribution
+
+Determining which distribution to deploy requires thoughtful planning. Many embedded Linux systems use custom-crafted contents rather than Android or Yocto.
+
+### Questions to ask when choosing a distribution
+
+- What is the main function of the system (server or desktop)?
+- What types of packages are important? (web server, word processing, etc.)
+- How much storage space is required, and how much is available?
+  - Example: Embedded devices usually have constrained space
+- How often are packages updated?
+- How long is the support cycle for each release?
+  - Example: LTS releases have long-term support
+- Do you need kernel customization from the vendor or a third party?
+- What hardware are you running on? (x86, RISC-V, ARM, PPC, etc.)
+- Do you need long-term stability? Or can you accept/need a cutting-edge system with latest software?
+
+---
+
+### Linux installation steps
+
+#### 1. Planning
+
+**Partition layout:**
+
+- Best decided at installation time; difficult to change later
+- Linux handles multiple partitions by mounting them at specific points in the filesystem
+- Most installers provide reasonable defaults:
+  - All space on one big partition + smaller swap partition, OR
+  - Separate partitions for space-sensitive areas like `/home` and `/var`
+- Override defaults if you have special needs or want to use more than one disk
+
+---
+
+#### 2. Software choices
+
+**What's included:**
+
+- All installations include bare minimum software for running Linux
+- Options for adding categories:
+  - Common applications (Firefox, LibreOffice)
+  - Developer tools (vi, emacs text editors)
+  - Popular services (Apache web server, MySQL database)
+  - Desktop environment (GNOME, KDE) if using GUI
+
+**Modern approach:**
+
+- Quick basic install first
+- Make software choices once system is running
+- (Older method required many choices during installation, which was intimidating and time-consuming)
+
+---
+
+#### 3. Initial security features
+
+**Basic setup:**
+
+- Set password for superuser (root)
+- Set up initial user account
+
+**Distribution-specific approaches:**
+
+- Some distros (Fedora, Ubuntu): Only initial user is set up
+  - Direct root login not configured
+  - Root access requires logging in as normal user, then using `sudo`
+- Some install advanced security frameworks:
+  - Red Hat-based (Fedora, CentOS): Use SELinux by default
+  - Ubuntu: Uses AppArmor
+
+---
+
+#### 4. Install source
+
+**Installation media options:**
+
+- Removable media (USB drives, CDs, DVDs)
+- Network boot: Boot small image, download rest over network
+- Can perform install without any local media
+
+**Automatic installation:**
+
+- Uses configuration files to specify options
+- File types by distribution family:
+  - **Red Hat-based:** Kickstart file
+  - **SUSE-based:** AutoYAST profile
+  - **Debian-based:** Preseed file
+
+---
+
+#### 5. The installation process
+
+**General flow:**
+
+1. Boot from installation media
+2. Installer asks questions about system setup
+   - Questions skipped if using automatic installation file
+3. Installation is performed
+4. Computer reboots into newly-installed system
+5. Additional configuration questions asked
+
+**Updates during installation:**
+
+- Most installers can download/install updates during installation (requires internet)
+- Otherwise, system uses normal update mechanism after installation
+
+---
+
+#### 6. ⚠️ Important warning
+
+**Caution:**  
+The demonstration installations show how to install Linux directly on your machine, **erasing everything**. Following these procedures will erase all current data.
+
+**Alternate installation methods** (from "Preparing Your Computer for Linux Training" document):
+
+1. **Re-partition hard disk** for dual boot (side-by-side with current OS)
+   - Sometimes complicated
+   - Do when confidence is high and you understand the steps
+
+2. **Use hypervisor program** (VMWare, Oracle VirtualBox)
+   - Install Linux as a virtual machine
+   - Safe method
+
+3. **Boot from Live CD/USB**
+   - Don't write to hard disk at all
+   - Safe method
+
+---
+
+### Chapter 4 summary
+
+**Key concepts covered:**
+
+- A **partition** is a logical part of the disk
+- A **filesystem** is a method of storing/finding files on a hard disk
+- **Benefit of partitions:** When failure or mistake occurs, only data in affected partition is damaged; other partitions likely survive
+- **Boot process steps:**
+  1. BIOS triggers boot loader
+  2. Boot loader starts Linux kernel
+  3. initramfs filesystem is invoked
+  4. init program completes startup process
+- **Choosing a distribution:** Match your specific system needs to the capabilities of different distributions
+
+---
+
 
