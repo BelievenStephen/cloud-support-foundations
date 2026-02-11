@@ -72,3 +72,24 @@ When debugging permission denials, check in this order:
 5. If the account is in AWS Organizations, check for **SCPs**
 
 **Takeaway:** Permission evaluation follows a specific order—explicit denies always win, and multiple policy sources can affect the final decision.
+
+---
+
+## Feb 11, 2026
+
+### CloudTrail + Support Flow (IAM / AccessDenied)
+
+* I opened **CloudTrail → Event history** and filtered to **Last 1 hour** to find a real event from today.
+* I selected an event named **AssumeRole** with **eventSource = sts.amazonaws.com**.
+* I learned **AssumeRole** means STS issued temporary credentials for a role session.
+* In this event, `userIdentity.type` was **AWSService** and `userIdentity.invokedBy` was **resource-explorer-2.amazonaws.com`, which means an AWS service initiated the call.
+* The record showed the **role being assumed** (`requestParameters.roleArn`) was:
+  `arn:aws:iam::886219357247:role/aws-service-role/resource-explorer-2.amazonaws.com/AWSServiceRoleForResourceExplorer`
+* The record showed the resulting **assumed role session ARN** (`responseElements.assumedRoleUser.arn`) was:
+  `arn:aws:sts::886219357247:assumed-role/AWSServiceRoleForResourceExplorer/resource-explorer-2`
+* I confirmed there was **no `errorCode`**, so the role assumption succeeded.
+* I noticed not every event includes `userIdentity.arn` or `sessionContext.sessionIssuer`. For AWSService events, the useful identifiers were `invokedBy`, `roleArn`, and the assumed role session ARN.
+* CloudTrail is useful because it answers: **who/what made the call, what API action happened, when, from where, and whether it succeeded**.
+* Support workflow: start from the **denied action** in the error (ex: `iam:CreateUser`), then use CloudTrail to confirm the **principal context** (user/role/service) and the **exact API call**, then check permission layers: identity policies, group policies, explicit denies, permission boundaries, and any org SCPs.
+
+
