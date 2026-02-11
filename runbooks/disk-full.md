@@ -196,3 +196,4 @@ sudo journalctl -n 20 --no-pager
 - "Disk full" breaks many unrelated commands because everything needs to write: logs, caches, temp files, config edits.
 - `df -h` tells you **where** you are full. `du` and `find` tell you **what** is consuming space.
 - Prefer safe cleanup first: temp files and caches, then investigate logs and large files.
+- In Drill 07 I simulated disk pressure by creating a large file in `~/drills/disk-pressure-07` using `fallocate`, then removed it and confirmed recovery with `df -h /`.”
