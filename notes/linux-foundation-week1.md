@@ -408,4 +408,574 @@ The demonstration installations show how to install Linux directly on your machi
 
 ---
 
+## Feb 11, 2026
 
+## Chapter 5: Graphical interface
+
+### Learning objectives
+
+By the end of this chapter, I should be able to:
+- Manage graphical interface sessions
+- Perform basic operations using the graphical interface
+- Change the graphical desktop to suit my needs
+
+---
+
+### Graphical desktop overview
+
+**Two ways to use Linux:**
+
+1. **Command Line Interface (CLI):**
+   - Need to remember programs and commands
+   - Often more efficient for repetitive tasks
+   - Requires knowledge of command options
+
+2. **Graphical User Interface (GUI):**
+   - Quick and easy
+   - Navigate through graphical icons and screens
+   - Easier if you don't remember all details or do tasks rarely
+
+**Distribution coverage:**  
+Managing sessions using GUI for three main families:
+- Red Hat (CentOS, Fedora)
+- SUSE (openSUSE)
+- Debian (Ubuntu, Mint)
+
+**Note:** Course uses GNOME-based variants. If using KDE, XFCE, or other desktops, experience will vary slightly but not fundamentally different.
+
+---
+
+### X Window System
+
+**Historical context:**
+
+- Loading the graphical desktop is one of the final steps in the boot process
+- Historically called the **X Windows System** (often just "X")
+- Dates back to mid-1980s
+
+**How it works:**
+
+- **Display Manager:** Keeps track of displays and loads the X server
+- **X server:** Provides graphical services to applications (X clients)
+- Display manager handles graphical logins and starts desktop environment
+
+**Modern replacement:**
+
+- **Wayland:** Newer system gradually superseding X
+- Default for Fedora, RHEL, and other recent distributions
+- Looks similar to X for users, but quite different under the hood
+- Addresses security and other deficiencies in X
+
+---
+
+### Desktop environment components
+
+**Main components:**
+
+1. **Session manager:** Starts and maintains components of graphical session
+2. **Window manager:** Controls placement/movement of windows, title-bars, and controls
+
+**Note:** These components are generally used together as a unit to provide a seamless desktop environment.
+
+**Starting the graphical desktop manually:**
+
+- If display manager doesn't start by default, can run `startx` from command line after logging in to text-mode console
+- Or manually start display manager (`gdm`, `kdm`, `xdm`, etc.) from command line
+  - This differs from `startx` as it projects a sign-in screen
+
+---
+
+### GUI startup and display managers
+
+**Boot process:**
+
+- Display manager starts at end of boot process
+- Responsible for:
+  - Starting graphics system
+  - Logging in the user
+  - Starting user's desktop environment
+- Can often select from multiple desktop environments at login
+
+**Common display managers:**
+
+- **gdm:** Default display manager for GNOME
+- **kdm:** Popular display manager associated with KDE
+
+---
+
+### GNOME desktop environment
+
+**What is GNOME:**
+
+- Popular desktop environment with easy-to-use GUI
+- Bundled as default for most Linux distributions:
+  - RHEL, Fedora, CentOS
+  - SUSE Linux Enterprise
+  - Ubuntu, Debian
+
+**Characteristics:**
+
+- Menu-based navigation
+- Easy transition for Windows users
+- Look and feel can vary across distributions, even when all using GNOME
+
+**Other desktop alternatives:**
+
+- **KDE:** Very important in Linux history, often used with SUSE/openSUSE
+- **Unity:** Present on older Ubuntu (still based on GNOME)
+- **XFCE**
+- **LXDE**
+
+**Course focus:** Restricting mostly to GNOME to keep things less complex.
+
+---
+
+### Customizing the desktop
+
+#### Changing desktop background
+
+**Two ways to change background:**
+
+1. **Image wallpaper:** Choose from defaults or use custom picture
+2. **Solid color:** Select color to display instead of image
+
+**How to change:**
+
+- Right-click anywhere on desktop
+- Choose "Change Background"
+
+**Theme changes:**
+
+- Can also change desktop theme
+- Theme changes look and feel of Linux system
+- Defines appearance of application windows
+
+---
+
+#### gnome-tweaks utility
+
+**Problem:**
+
+- Default settings utility is limited in modern GNOME-based distributions
+- Many settings users want to modify are not accessible through standard interface
+- Quest for simplicity has made it difficult to adapt system to personal tastes
+
+**Solution: gnome-tweaks**
+
+- Standard utility that exposes many more setting options
+- Permits easy installation of extensions by external parties
+- Not always installed by default, but always available
+- Older distributions used name `gnome-tweak-tool`
+
+**How to run:**
+
+- May need to hit `Alt-F2` and type the name
+- May want to add to Favorites list
+
+**Recent change:**
+
+- Some recent distributions moved functionality to new tool: `gnome-extensions-app`
+
+**Example use case:**
+
+- Remap CapsLock key to act as additional Ctrl key
+- Saves users who use Ctrl frequently (like emacs users) from pinkie strain
+
+---
+
+#### Changing themes
+
+**What themes control:**
+
+- Visual appearance of applications
+  - Buttons, scroll bars, widgets, other graphical components
+
+**How to change:**
+
+- Method varies by distribution
+- Many GNOME-based distributions: Run `gnome-tweaks`
+- Some newer systems: Use `gnome-extensions-app`
+
+**Getting additional themes:**
+
+- Download and install from GNOME's Wiki website
+- Beyond the default selection
+
+---
+
+### Session management
+
+#### Logging in and out
+
+**Note:** Evolution has brought distributions to a stage where it matters little which you choose—they're all rather similar.
+
+---
+
+#### Locking the screen
+
+**Why lock:**
+
+- Prevents others from accessing your session while away
+- Does NOT suspend computer
+- All applications and processes continue running
+
+**Two ways to lock:**
+
+1. **Graphical method:**
+   - Click in upper-right corner of desktop
+   - Click lock icon
+
+2. **Keyboard shortcut:**
+   - `SUPER-L` (or `SUPER-Escape`)
+   - SUPER key = Windows key
+   - Can be modified in keyboard settings
+
+**To unlock:**
+
+- Provide password again
+
+---
+
+#### Switching users
+
+**Key concept:**
+
+- Linux is a true multi-user operating system
+- Multiple users can be simultaneously logged in
+
+**Requirements:**
+
+- Each person needs own user account and password
+- Allows for:
+  - Individualized settings
+  - Home directories
+  - Personal files
+- Protects against accidental and malicious corruption
+
+**How it works:**
+
+- Users can take turns using machine
+- Keep everyone's sessions alive
+- Can be logged in simultaneously through network
+
+---
+
+#### Shutting down and restarting
+
+**When system restart is required:**
+
+- Part of certain major system updates
+- Generally only when installing new Linux kernel
+
+**Process:**
+
+- Rather trivial on all current distributions
+- Click settings (gear) or power icon
+- Follow prompts
+- Can also use `shutdown` command from command line (covered later)
+
+**GNOME shutdown steps:**
+
+1. Click Power or Gear icon in upper-right corner
+2. Click Power Off, Restart, or Cancel
+3. If no action, system shuts down in 60 seconds
+
+**Important:**
+
+- Operations ask for confirmation
+- Many applications won't save data properly when terminated this way
+- **Always save documents and data before restarting, shutting down, or logging out**
+
+---
+
+#### Suspending
+
+**What is Suspend/Sleep Mode:**
+
+- Saves current system state
+- Allows quick session resume
+- Uses very little power while sleeping
+
+**How it works:**
+
+- Keeps applications, desktop, etc. in system RAM
+- Turns off all other hardware
+- Shortens time for full system start-up
+- Conserves battery power
+
+**Note:** Modern Linux distributions boot so fast that time saved is often minor.
+
+**How to suspend:**
+
+- Process starts same as shutdown or lock screen
+- Click Power icon and hold briefly, then release
+- Click double line icon to suspend
+- Some distributions (Ubuntu) may show separate Suspend icon
+
+**To wake up:**
+
+- Move mouse or press any keyboard button
+- Screen will be locked
+- Type password to resume
+
+---
+
+### Basic operations
+
+#### Locating applications
+
+**Where applications are found:**
+
+- Applications menu (upper-left corner)
+- Activities menu (upper-left corner)
+- Some Ubuntu versions: Dash button (upper-left)
+- KDE and some environments: Button in lower-left corner
+
+**Initial install:**
+
+- Usually comes with wide range of applications
+- Software archives contain thousands of programs
+- Default application usually already installed for most tasks
+- Can always install more from repositories
+
+**Example:**
+
+- Firefox is popular default browser
+- Alternatives available: Epiphany, Konqueror, Chromium
+- Proprietary browsers: Opera, Chrome
+
+**Organization:**
+
+- Applications neatly organized in functional submenus
+
+---
+
+#### Default applications
+
+**What are default applications:**
+
+- Multiple applications can accomplish same task
+- Example: Clicking web address in email launches default browser
+
+**How to set:**
+
+1. Enter Settings menu
+2. Click "Default Applications" or "Details > Default Applications"
+3. Exact list varies by what's installed on system
+
+---
+
+#### File manager (Nautilus)
+
+**What is Nautilus:**
+
+- File manager utility used to navigate filesystem
+- Called "Files" in the interface
+- Can locate files and launch them
+
+**Behavior:**
+
+- Click on file → runs if program, or launches associated application
+- Familiar to users of other operating systems
+
+**How to start:**
+
+1. Click file cabinet icon
+2. Usually found under Favorites or Accessories
+3. Named "Files"
+
+**What it displays:**
+
+- Opens with Home directory
+- Left panel shows commonly used directories:
+  - Desktop
+  - Documents
+  - Downloads
+  - Pictures
+- Magnifying glass icon (top-right) for searching
+
+**Accessing locations:**
+
+- Home directory
+- Desktop
+- Documents
+- Pictures
+- Other Locations
+- Network locations
+
+---
+
+#### Home directories
+
+**Structure:**
+
+- Every user has home directory
+- Usually created under `/home`
+- Named according to user (e.g., `/home/student`)
+
+**Default behavior:**
+
+- Files user saves placed in tree starting there
+- Default directories created:
+  - Documents
+  - Desktop
+  - Downloads
+
+**When created:**
+
+- During system installation, or
+- When new user is added later
+
+---
+
+#### Viewing files
+
+**View formats:**
+
+- **Icons view:** `CTRL-1`
+- **List view:** `CTRL-2`
+- Switch via icons in top bar or keyboard shortcuts
+
+**Sorting options:**
+
+- By name, size, type, or modification date
+- Click View → Arrange Items
+
+**Hidden files:**
+
+- Configuration files starting with dot (.)
+- Usually hidden by default
+- To show: View → Show Hidden Files or `CTRL-H`
+
+**Customization:**
+
+- Multiple window view options
+- Zoom In/Zoom Out under View menu
+- Facilitates drag and drop operations
+
+---
+
+#### Searching for files
+
+**Basic search:**
+
+1. Click Search in toolbar
+2. Enter keyword in text box
+3. System performs recursive search from current directory
+4. Finds any file/directory containing keyword
+
+**Keyboard shortcuts:**
+
+- `CTRL-F`: Get to search text box
+- `CTRL-F` again: Exit search
+- `CTRL-L`: Get Location text box to type directory path
+
+**Command line:**
+
+- Type `nautilus` to open File Manager
+
+**Refining search:**
+
+- Use dropdown menus for additional filters
+  - Location
+  - File Type
+- Click + button for multiple search criteria
+- Click Reload to regenerate search
+
+**Example:**
+
+- Find PDF containing "Linux" in home directory:
+  1. Navigate to Home
+  2. Search "Linux"
+  3. Click + for additional criterion
+  4. Select File Type
+  5. Choose PDF
+
+---
+
+#### Editing files
+
+**Default text editor:**
+
+- **gedit** in GNOME
+- Simple yet powerful
+- Features:
+  - Spell-checking
+  - Syntax highlighting
+  - File listings
+  - Statistics
+
+**How to edit:**
+
+- Double-click file on desktop or in Nautilus
+- Opens with default text editor
+
+**Uses:**
+
+- Editing documents
+- Quick notes
+- Programming
+
+**Note:** More about text editors in later chapter.
+
+---
+
+#### Removing files
+
+**Delete behavior:**
+
+- Deleted files automatically move to trash
+- Location: `.local/share/Trash/files/` under user's home directory
+
+**How to delete:**
+
+1. Select files/directories to delete
+2. Press `CTRL-Delete` or right-click
+3. Select "Move to Trash"
+
+**Delete Permanently option:**
+
+- Bypasses trash folder
+- May be visible all time or only in list mode
+
+**To permanently delete:**
+
+**Method 1:**
+1. Right-click Trash in left panel
+2. Select Empty Trash
+
+**Method 2:**
+- Select file/directory
+- Press `Shift-Delete`
+
+**Important warning:**
+
+- Never delete Home directory
+- Will erase all GNOME configuration files
+- May prevent you from logging in
+- Many personal system and program configurations stored there
+
+---
+
+### Chapter 5 summary
+
+**Key concepts covered:**
+
+- **GNOME:** Popular desktop environment and GUI running on Linux
+- **gdm:** Default display manager for GNOME, presents login screen
+- **Session management:**
+  - Logging out kills all processes and returns to login screen
+  - Linux enables switching between logged-in sessions
+  - Suspending puts computer into sleep mode
+- **Applications:**
+  - Default application installed for each key task
+  - Every user has home directory
+  - Places menu accesses different parts of computer/network
+- **File management:**
+  - Nautilus provides three formats to view files
+  - Most text editors in Accessories submenu
+- **Customization:**
+  - Each distribution has own desktop backgrounds
+  - GNOME themes change application appearance
+
+---
