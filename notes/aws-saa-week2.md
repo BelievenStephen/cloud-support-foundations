@@ -92,4 +92,141 @@ When debugging permission denials, check in this order:
 * CloudTrail is useful because it answers: **who/what made the call, what API action happened, when, from where, and whether it succeeded**.
 * Support workflow: start from the **denied action** in the error (ex: `iam:CreateUser`), then use CloudTrail to confirm the **principal context** (user/role/service) and the **exact API call**, then check permission layers: identity policies, group policies, explicit denies, permission boundaries, and any org SCPs.
 
+---
+
+## Feb 12, 2026
+
+### VPC Basics Review (Console Walkthrough)
+
+**Components reviewed:**
+- Subnets
+- Route Tables
+- Internet Gateways
+- NAT Gateways
+- Security Groups
+- Network ACLs
+
+---
+
+### Subnets Examined
+
+I looked at two subnets in the VPC console:
+
+**Subnet 1:**
+- ID: `subnet-0ed1fa4a40bc62a26`
+- Availability Zone: `us-west-1c`
+- CIDR: `172.31.0.0/20`
+
+**Subnet 2:**
+- ID: `subnet-0b7f3fdc246069fbe`
+- Availability Zone: `us-west-1a`
+- CIDR: `172.31.16.0/20`
+
+**Routing configuration:**
+- Both subnets associated with route table containing: `0.0.0.0/0 -> igw-...`
+- This means they have a direct path to the internet (public routing)
+
+**Key insight:** "Public vs private subnet" is mainly determined by the route table default route (IGW vs NAT vs no default route), not the subnet name.
+
+---
+
+### Internet Gateway
+
+**Found:**
+- Internet Gateway: `igw-0d2b4afba531a9b3b`
+- Attached to VPC: `vpc-0622cb5ac599f4c36`
+- This is what the route tables use for internet access
+
+---
+
+### NAT Gateways
+
+**Status:**
+- No NAT Gateways present
+- This environment does not currently have the "private subnet outbound via NAT" pattern configured
+
+---
+
+### Security Groups
+
+**Observed behavior:**
+- Default-style configuration: outbound allowed to `0.0.0.0/0` (all traffic)
+
+**Example rules noted:**
+- `sgr-0317186940658c253`: Inbound reference to default SG
+- `sgr-026bdd4b41afffbed`: Outbound all traffic
+
+---
+
+### Network ACLs
+
+**Configuration:**
+- Only one Network ACL present
+- Inbound rules: Allow rule + Deny rule (typical default pattern)
+- Outbound rules: Allow rule + Deny rule (typical default pattern)
+
+**Key learning:** NACLs are stateless and ordered, so they can block traffic even if the Security Group looks correct.
+
+---
+
+### Support Mapping: "Instance Unreachable" (SSH/RDP/App Port)
+
+**Troubleshooting checklist:**
+
+1. **Check instance Security Group:**
+   - Verify inbound rule exists for the required port
+   - Confirm source IP/CIDR is allowed
+
+2. **Check subnet route table:**
+   - Verify default route (`0.0.0.0/0`) exists
+   - Confirm target (IGW vs NAT)
+
+3. **Verify VPC has IGW attached:**
+   - Required if public access is expected
+
+4. **Check Network ACL:**
+   - Verify both inbound AND outbound rules
+   - Remember: NACLs are stateless (both directions matter)
+
+---
+
+### Support Mapping: "DNS Works but App Fails"
+
+**Approach:** Treat as not-DNS issue
+
+**Troubleshooting checklist:**
+
+1. **Check Security Group rules:**
+   - Verify app port is allowed (80/443/custom)
+   - Confirm source is permitted
+
+2. **Verify service health on instance:**
+   - Confirm service is listening on the port
+   - Check application health status
+
+3. **Check routing path:**
+   - Verify subnet route table configuration
+   - Check any upstream components (ALB/target group if used)
+
+---
+
+### VPC Takeaways
+
+**Core concepts:**
+
+- **Route tables** answer: "Where can packets go?"
+- **Security Groups** answer: "Which ports are allowed?"
+- **Network ACLs** answer: "What can the subnet filter block?"
+
+**Key relationships:**
+
+| Component | Function | Scope |
+|-----------|----------|-------|
+| Route Table | Determines packet destination | Subnet-level |
+| Security Group | Filters traffic by port/protocol | Instance-level, stateful |
+| Network ACL | Ordered filter rules | Subnet-level, stateless |
+| Internet Gateway | Enables internet access | VPC-level |
+| NAT Gateway | Enables private subnet outbound | Subnet-specific |
+
+---
 
