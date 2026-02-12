@@ -401,4 +401,134 @@ Ethernet is the most common wired LAN approach.
   - Mixed/legacy modes help old devices connect but can reduce performance.
   - SSID broadcast off does not equal secure. Use strong security settings and control access (guest SSID as needed).
 
+---
 
+## Feb 12, 2026
+
+## Module 5: Communication Principles
+
+### Module objective
+Explain the importance of standards and protocols in network communications.
+
+**Topics covered:**
+- Communication Protocols
+- Communication Standards
+- Network Communication Models
+
+---
+
+### Communication protocols basics
+
+**Human communication analogy:**
+- Before communicating, we establish rules/agreements
+- Different expectations for different contexts (casual chat vs job interview)
+- Must follow protocols for successful delivery and understanding
+
+**Rules that govern human communication:**
+- Identified sender and receiver
+- Agreed-upon method of communicating (face-to-face, telephone, letter, photograph)
+- Common language and grammar
+- Speed and timing of delivery
+- Confirmation or acknowledgment requirements
+
+**Key insight:** Network communications share these fundamentals with human conversations.
+
+---
+
+### Why protocols matter
+
+**Core concept:**
+- Like humans, computers use rules (protocols) to communicate
+- Local network = area where all hosts "speak the same language" (share common protocol)
+- Without shared protocols, devices cannot communicate (like people speaking different languages in same room)
+
+---
+
+### Protocol characteristics
+
+Networking protocols define many aspects of communication over the local network:
+
+| Protocol Characteristic | Description |
+|------------------------|-------------|
+| **Message Format** | Specific format/structure required. Format depends on message type and channel used. |
+| **Message Size** | Rules governing size of pieces are strict. May vary by channel. Long messages may need to be broken into smaller pieces for reliable delivery. |
+| **Timing** | Determines: (1) speed of bit transmission, (2) when individual host can send data, (3) total amount of data in any one transmission. |
+| **Encoding** | Messages converted to bits by sending host. Bits encoded into patterns of sounds, light waves, or electrical impulses (depending on media). Destination host receives and decodes signals. |
+| **Encapsulation** | Process of adding header information to data pieces. Header contains addressing info (source and destination hosts). May include other info to ensure delivery to correct application. |
+| **Message Pattern** | Some messages require acknowledgment before next message (request/response pattern). Others may stream across network without concern for delivery confirmation. |
+
+---
+
+### Communication standards
+
+**Why standards matter:**
+- With increasing devices and technologies, standards ensure reliable service delivery
+- Standards = set of rules that determines how something must be done
+- Networking and internet standards ensure all devices implement same rules/protocols in same manner
+
+**Example benefit:**
+- Different device types can send information to each other
+- Email formatted, forwarded, and received according to standard
+- PC can send email that mobile phone receives and reads (as long as both use same standards)
+
+---
+
+### Network standards organizations
+
+**Standards development process:**
+- Result of comprehensive cycle: discussion, problem solving, testing
+- Different organizations develop, publish, and maintain standards
+
+**Key organization:**
+- **IETF (Internet Engineering Task Force):** Publishes and manages internet standards
+- **RFC (Request for Comments):** Numbered documents tracking evolution of standards
+- Each stage of development/approval is recorded in RFCs
+
+---
+
+### Network communication models (layered models)
+
+**Why layered models are useful:**
+- Visualize how protocols work together for network communications
+- Show operation of protocols within each layer
+- Show interaction between layers
+
+**Benefits of layered models:**
+- Assists in protocol design (defined info and interfaces per layer)
+- Fosters competition (products from different vendors can work together)
+- Enables technology changes at one level without affecting others
+- Provides common language for describing networking functions
+
+---
+
+### The TCP/IP model
+
+**History:**
+- First layered model created in early 1970s (internet model)
+- Defines four categories of functions for successful communications
+- Suite of TCP/IP protocols follows this model structure
+- Commonly referred to as TCP/IP Model
+
+**Four layers:**
+
+| TCP/IP Model Layer | Description |
+|-------------------|-------------|
+| **Application** | Represents data to the user, plus encoding and dialog control |
+| **Transport** | Supports communication between various devices across diverse networks |
+| **Internet** | Determines the best path through the network |
+| **Network Access** | Controls the hardware devices and media that make up the network |
+
+**Key concept:** Each layer has specific responsibilities and interacts with layers above and below it.
+
+---
+
+### Module 5 takeaways (so far)
+
+**Core concepts learned:**
+- Communication requires agreed-upon rules (protocols)
+- Protocols define: message format, size, timing, encoding, encapsulation, and patterns
+- Standards ensure different devices can communicate
+- Layered models help visualize and design network communications
+- TCP/IP model has four layers, each with specific functions
+
+---
