@@ -230,3 +230,142 @@ I looked at two subnets in the VPC console:
 
 ---
 
+## Feb 13, 2026
+
+### SG vs NACL: "Unreachable" Troubleshooting Flow
+
+**Key distinction learned:**
+- **Security Groups:** Stateful, attached to ENIs (instance-level)
+- **Network ACLs:** Stateless, attached to subnets (subnet-level)
+
+**Troubleshooting approach:**
+- Check Security Groups first for most port-access problems
+- NACLs can block traffic even when SG rules look correct
+
+---
+
+### Error Patterns Guide Where to Look
+
+**Error shape indicates root cause:**
+
+| Error Type | Likely Issue | What to Check |
+|------------|--------------|---------------|
+| "Timed out" | Routing/IGW/NACL path issues | Route table, IGW attachment, NACL rules |
+| "Connection refused/failed to connect" | Port/service not accepting connections | SG rules, service status, port listening |
+
+---
+
+### Common Security Group Mistakes
+
+1. **Wrong port configured**
+2. **Wrong source CIDR** (my public IP changed)
+3. **Editing the wrong SG** (not attached to the instance)
+
+---
+
+### Common Network ACL Mistakes
+
+**Key concepts:**
+- **Rule order matters:** Lower rule numbers evaluated first
+- **Return traffic must be allowed explicitly**
+- **Ephemeral ports:** Clients use high ports (often 1024–65535)
+  - NACLs must allow return traffic or SSH/HTTP can time out
+
+**Important:** NACLs do not show "Type: SSH" like SGs. They are evaluated by protocol/port/CIDR and rule number ordering.
+
+---
+
+### Hands-on: Instance Network Path Verification
+
+**Launched lab instance and captured key IDs:**
+- Instance ID
+- Subnet ID
+- VPC ID
+- Public IP
+- Attached Security Group(s)
+
+**Purpose:** Trace the full network path in the console
+
+---
+
+### Ticket Walkthrough: "Cannot SSH to Instance"
+
+**Step-by-step troubleshooting:**
+
+#### 1) Verify instance has public connectivity
+
+**Check:**
+- Instance has public IPv4 (or EIP)
+- Instance is in subnet that routes `0.0.0.0/0 → igw-...`
+
+---
+
+#### 2) Verify Internet Gateway
+
+**Check:**
+- VPC has Internet Gateway
+- IGW is attached to same VPC as instance
+
+---
+
+#### 3) Check Security Group inbound rules
+
+**Verify:**
+- Instance's attached SG has inbound TCP/22 (SSH)
+- Source is my current public IP (/32)
+
+**Note:** Console can auto-fill current public IP
+
+---
+
+#### 4) Validate Network ACL
+
+**Check:**
+- Subnet's NACL association
+- Review inbound/outbound rules
+- Verify rule ordering
+
+**My lab NACL pattern:**
+- Rule 100: ALLOW all traffic inbound/outbound (lab configuration)
+- Default: DENY * catch-all
+
+**Result:** NACL was not the blocker in this case
+
+---
+
+### Troubleshooting Decision Flow
+
+**Primary check:** Security Group (most common cause)
+
+**If timeout occurs, validate:**
+1. Route table
+2. IGW attachment
+3. NACL return traffic rules
+
+**If SG + routing + NACL all correct, shift to instance-level:**
+- Wrong username/key
+- sshd not running
+- Host firewall blocking
+
+---
+
+### Key Takeaways
+
+**Security Groups:**
+- Stateful (return traffic automatic)
+- Instance-level (attached to ENI)
+- Check first for port access issues
+
+**Network ACLs:**
+- Stateless (must explicitly allow both directions)
+- Subnet-level
+- Rule order matters
+- Ephemeral ports must be allowed for return traffic
+
+**Troubleshooting priority:**
+1. Security Group rules
+2. Route table + IGW
+3. NACL rules (especially for timeouts)
+4. Instance-level issues
+
+---
