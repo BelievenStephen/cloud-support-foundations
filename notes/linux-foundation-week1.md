@@ -979,3 +979,307 @@ Managing sessions using GUI for three main families:
   - GNOME themes change application appearance
 
 ---
+
+## Feb 13, 2026
+
+## Chapter 6: System configuration from the graphical interface
+
+### Learning objectives
+
+By the end of this chapter, I should be able to:
+- Apply system, display, and date/time settings using System Settings panel
+- Track network settings and manage connections using Network Manager
+- Install and update software in Linux from graphical interface
+
+**Note:** These tasks will be revisited later from the command line interface.
+
+---
+
+### System Settings
+
+**What it controls:**
+- Basic configuration options
+- Desktop settings
+- Screen resolution
+- Network connections
+- Date and time
+
+**How to access:**
+- Click upper right-hand corner
+- Select tools image (screwdriver/wrench or gear icon)
+- Exact menu layout varies by distribution and version
+
+**Configuration options:**
+- Click appropriate items to configure:
+  - Display
+  - Keyboard
+  - Printers
+  - Applications
+  - Users (under Details) - set login picture, password, etc.
+
+---
+
+### gnome-tweaks
+
+**Why it's needed:**
+- Many personalized configuration settings don't appear in standard settings menus
+- Older distributions: `gnome-tweak-tool`
+- Launch with `Alt-F2` and type command name
+- Some distributions hide this tool, making it hard to discover
+
+**What you can do:**
+- Select themes
+- Configure extensions (from distribution or internet)
+- Control fonts
+- Modify keyboard layout
+- Set programs that start at login
+
+**Recent change:**
+- Latest GNOME versions removed much functionality from gnome-tweaks
+- Extensions now configured with `gnome-extensions-app`
+
+---
+
+### Display settings
+
+**How to access:**
+- Settings → Displays (or Settings → Devices → Displays)
+- OR right-click anywhere on desktop → Display Settings
+
+**What it controls:**
+- Desktop appearance settings
+- Functions independently of display drivers
+- Appearance depends on: number of monitors, distribution, version
+
+**Proprietary drivers:**
+- Systems with nVidia/AMD cards may have separate config program
+- Separate program may offer more options but is more complicated
+- May require root access
+- **Recommendation:** Use Displays panel when possible
+
+**X Window configuration:**
+- Config file: `/etc/X11/xorg.conf` (if it exists)
+- Modern distributions usually only have this for unusual circumstances (uncommon graphic drivers)
+- Direct editing is for advanced users
+
+---
+
+### Resolution and multiple screens
+
+**Resolution configuration:**
+- System usually auto-detects best resolution
+- Can change via Displays panel
+- Click Apply to test new resolution
+- Must confirm resolution works
+- Automatic timeout and revert if no confirmation
+
+**Multiple displays:**
+- Usually auto-configured as one big screen
+- System makes reasonable guess for layout
+- Options:
+  - Mirrored mode (same display on all monitors)
+  - Individual monitor configuration (resolution per monitor)
+  - One big screen or mirrored video
+
+---
+
+### Date and time settings
+
+**Internal timekeeping:**
+- Linux always uses **Coordinated Universal Time (UTC)** internally
+- Displayed/stored times use system time zone setting
+- UTC is more accurate than Greenwich Mean Time (GMT)
+
+**How to adjust:**
+- Click time on top panel
+- Adjust format for date/time display
+- Some distributions allow value changes from top panel
+- Detailed settings: System Settings Menu → Date & Time window
+
+---
+
+### Network Time Protocol (NTP)
+
+**What it is:**
+- Most popular/reliable protocol for setting local time
+- Consults established Internet servers
+
+**Setup:**
+- All distributions come with working NTP setup
+- References specific time servers (run/relied on by distribution)
+- Generally only requires "on" or "off" setting
+- No complex setup needed for network time synchronization
+
+---
+
+### Network Manager
+
+**Purpose:**
+- Makes network configuration easier and more uniform across distributions
+- Alternative to hand-editing network config files
+
+**What it can do:**
+- List all available networks (wired and wireless)
+- Choose wired, wireless, or mobile broadband network
+- Handle passwords
+- Set up Virtual Private Networks (VPNs)
+
+**Recommendation:** Generally best to let Network Manager handle connections and settings (except unusual situations).
+
+---
+
+### Wired and wireless connections
+
+**Wired connections:**
+- Usually don't require complicated/manual configuration
+- Hardware interface and signal automatically detected
+- Network Manager sets network settings via **DHCP (Dynamic Host Configuration Protocol)**
+
+**Static configurations:**
+- Manual setup easily done through Network Manager
+- Can change Ethernet **MAC address** (if hardware supports)
+- MAC address = unique hexadecimal number of network card
+
+---
+
+### Configuring wireless connections
+
+**Process (GNOME-based distributions):**
+
+1. Click upper-right corner of top panel
+2. Opens settings/network window
+3. Click Wi-Fi submenu (if hardware present)
+4. Select wireless network to connect to
+5. For secure networks: Enter password on first connection
+6. Password saved by default for subsequent connections
+
+**Advanced configuration:**
+- Click "Wi-Fi Settings" for more options
+- Click Gear icon for any connection to configure in detail
+
+---
+
+### Mobile broadband and VPN connections
+
+**Mobile broadband:**
+- Set up via Network Manager wizard
+- Wizard configures connection details
+- Network auto-configured when broadband attached
+
+**VPN support:**
+- Network Manager manages VPN connections
+- Supported technologies:
+  - Native IPSec
+  - Cisco OpenConnect (Cisco client or native open source client)
+  - Microsoft PPTP
+  - OpenVPN
+
+**Note:** VPN support may be separate package from distributor. Install if preferred VPN not supported by default.
+
+---
+
+### Installing and updating software
+
+**Package concept:**
+- Each package provides one piece of the system
+- Examples: Linux kernel, C compiler, text utilities, network config, browsers, email clients
+
+**Dependencies:**
+- Packages often depend on each other
+- Example: Email client using SSL/TLS depends on encryption package
+- Won't install unless dependency also installed
+
+**Package management levels:**
+
+1. **Lower-level utility:**
+   - Handles unpacking package
+   - Puts pieces in right places
+
+2. **Higher-level utility (most common):**
+   - Downloads and installs packages from Internet
+   - Manages dependencies and groups
+   - What you'll usually work with
+
+---
+
+### Debian packaging system
+
+**Used by:** Debian, Ubuntu, and related distributions
+
+**Lower-level: dpkg**
+- Underlying package manager
+- Can install, remove, and build packages
+- Does NOT automatically download packages or satisfy dependencies
+
+**Higher-level: APT (Advanced Package Tool)**
+- System of utilities built on top of dpkg
+- Each Debian family distribution creates own user interface:
+  - `apt` and `apt-get`
+  - synaptic
+  - gnome-software
+  - Ubuntu Software Center
+
+**Repository notes:**
+- APT repositories generally compatible with each other
+- Software they contain generally is NOT compatible
+- Most repositories target specific distribution (like Ubuntu)
+- Distributors often ship multiple repositories for multiple distributions
+
+---
+
+### RPM packaging system
+
+**Used by:** Red Hat, Fedora, CentOS, SUSE/openSUSE, Oracle Linux, others
+
+**RPM (Red Hat Package Manager):**
+- Developed by Red Hat
+- Adopted by many distributions
+
+**Higher-level package managers (varies by distribution):**
+- **Red Hat family (RHEL/CentOS):** Historically used `yum`, now uses `dnf`
+- **Fedora:** Uses `dnf`
+- **SUSE family (openSUSE):** Uses `zypper` interface (still RPM-based)
+
+---
+
+### YaST Software Management (openSUSE)
+
+**YaST (Yet another Setup Tool):**
+- Similar to other graphical package managers
+- RPM-based application
+- Can add, remove, or update packages
+
+**How to access:**
+
+**Method 1:**
+1. Click Activities
+2. Search box: type "YaST"
+3. Click YaST icon
+4. Click Software Management
+
+**Method 2:**
+- Applications → Other-YaST (unusual location)
+
+---
+
+### Chapter 6 summary
+
+**Key concepts covered:**
+
+- **System Settings panel:** Controls basic configuration and desktop settings
+- **Date and time:**
+  - Linux uses UTC internally
+  - Settings adjustable from System Settings window
+- **Network Time Protocol:** Most popular/reliable for setting local time via Internet servers
+- **Displays panel:** Change resolution and configure multiple screens
+- **Network Manager:**
+  - Present available wireless networks
+  - Choose wireless or mobile broadband
+  - Handle passwords
+  - Set up VPNs
+- **Package management:**
+  - dpkg and RPM are most popular systems
+  - Debian distributions: dpkg and apt-based utilities
+  - RPM: Developed by Red Hat, adopted by openSUSE, CentOS, Oracle Linux, others
+
+---
