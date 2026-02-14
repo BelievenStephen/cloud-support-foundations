@@ -369,3 +369,151 @@ I looked at two subnets in the VPC console:
 4. Instance-level issues
 
 ---
+
+## Feb 14, 2026
+
+### VPC Reachability Decision Tree
+
+**Full path for instance reachability:**
+- Public IP/EIP → Subnet route table → IGW → Security Group → NACL → Instance OS (sshd/listening) → Authentication (key/user)
+
+---
+
+### Symptom Classification
+
+**Test connectivity first:**
+```bash
+nc -vz -w 3 <public-ip> 22
+```
+
+**What `nc` tells you:**
+- Command tests if port is reachable at all
+- Helps classify issue before touching the instance
+
+---
+
+### Decision logic based on `nc` result
+
+**If `nc` times out:**
+- Suspect: Routing/IGW/NACL/SG path problems
+- Check: VPC network path components first
+- NOT an instance-level issue
+
+**If `nc` succeeds but SSH fails:**
+- Suspect: Credentials (wrong key, wrong username) or instance OS config
+- NOT a VPC path issue
+- Focus on authentication and instance configuration
+
+---
+
+### Verification checklist (applied in order)
+
+#### 1) Instance has public connectivity
+
+**Verified:**
+- Instance has public IPv4 address
+- Subnet route table has `0.0.0.0/0 → igw-...`
+- Inbound internet routing exists
+
+---
+
+#### 2) Security Group allows inbound SSH
+
+**Verified:**
+- Security Group allows inbound TCP/22
+- Source: My current public IP `/32`
+
+**Important note:** "My IP" can change (dynamic IP from ISP), so the rule may need updating if connection fails later.
+
+---
+
+#### 3) Network ACL not blocking traffic
+
+**Verified:**
+- Subnet NACL: Default allow-all inbound/outbound
+- Not restricting traffic in this lab environment
+
+---
+
+#### 4) Instance-level verification
+
+**Check sshd service status:**
+```bash
+systemctl status sshd
+```
+
+**Result:** Active (running)
+
+**Check port listening:**
+```bash
+ss -tulpn | grep :22
+```
+
+**Result:** LISTEN state confirmed
+
+**Conclusion:** sshd is running and bound to port 22
+
+---
+
+### Error message interpretation
+
+**"Permission denied" after SSH attempt:**
+- Points to: Authentication or user/key mismatch
+- NOT a connectivity issue
+- Check: Correct key file, correct username, key permissions
+
+---
+
+### Support mapping: Error types
+
+**Error patterns and root causes:**
+
+| Error Type | Likely Cause | Where to Investigate |
+|------------|--------------|---------------------|
+| **Timeout** | Network path issue | Route table, IGW, NACL, Security Group |
+| **Connection refused** | Port closed or service not listening | Instance service status, port binding |
+| **Permission denied** | Authentication issue | SSH key, username, key permissions |
+
+---
+
+### Troubleshooting workflow summary
+
+**Step 1: Test connectivity**
+```bash
+nc -vz -w 3 <public-ip> 22
+```
+
+**Step 2a: If timeout → Check network path**
+1. Public IP/EIP assigned
+2. Route table: `0.0.0.0/0 → igw-...`
+3. IGW attached to VPC
+4. Security Group: Inbound TCP/22 allowed
+5. NACL: Not blocking (check both directions)
+
+**Step 2b: If connection succeeds but SSH fails → Check instance/auth**
+1. Service running: `systemctl status sshd`
+2. Port listening: `ss -tulpn | grep :22`
+3. Correct username (ubuntu, ec2-user, admin, etc.)
+4. Correct SSH key
+5. Key permissions (should be 400 or 600)
+
+---
+
+### Key takeaways
+
+**Decision tree approach:**
+- Use `nc` to quickly classify the issue type
+- Network path issues (timeout) vs Instance/auth issues (connection succeeds but SSH fails)
+
+**Common pitfalls:**
+- "My IP" changes → SG rule becomes invalid
+- Wrong username for AMI (ubuntu vs ec2-user)
+- SSH key permissions too open (need 400 or 600)
+
+**Troubleshooting priority:**
+1. Network reachability (`nc` test)
+2. VPC path if timeout (route → IGW → SG → NACL)
+3. Instance service if connection succeeds (sshd status, port binding)
+4. Authentication if service works (key, username, permissions)
+
+---
