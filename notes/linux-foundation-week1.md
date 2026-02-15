@@ -1283,3 +1283,1082 @@ By the end of this chapter, I should be able to:
   - RPM: Developed by Red Hat, adopted by openSUSE, CentOS, Oracle Linux, others
 
 ---
+
+## Feb 15, 2026
+
+## Chapter 7: Common applications
+
+### Learning objectives
+
+By the end of this chapter, I should be familiar with common Linux applications, including:
+- Internet applications (browsers, email programs)
+- Office productivity suites (LibreOffice)
+- Developer tools (compilers, debuggers, etc.)
+- Multimedia applications (audio and video)
+- Graphics editors (GIMP and other graphics utilities)
+
+---
+
+### Internet applications overview
+
+**Common network-aware applications:**
+- Web browsers
+- Email clients
+- Streaming media applications
+- Internet Relay Chats
+- Conferencing software
+
+---
+
+### Web browsers
+
+**Available browsers (graphical and text-based):**
+- Firefox
+- Google Chrome
+- Chromium
+- Epiphany (renamed "web")
+- Konqueror
+- linx, lynx, w3m (text-based)
+- Opera
+
+---
+
+### Email applications
+
+**What they do:**
+- Send, receive, and read messages over the Internet
+- Many users use browsers to access email accounts
+
+**Protocols:**
+- **IMAP (Internet Message Access Protocol):** Modern standard
+- **POP (Post Office Protocol):** Older protocol
+- Both access emails stored on remote mail server
+
+**Features:**
+- Display HTML-formatted emails (pictures, hyperlinks)
+- Import address books/contact lists
+- Import configuration info and emails from other applications
+
+**Available email clients:**
+- **Graphical:** Thunderbird, Evolution, Claws Mail
+- **Text mode:** Mutt, mail
+- **Web-based:** Gmail, Yahoo Mail, Office 365
+
+---
+
+### Other Internet applications
+
+**FileZilla:**
+- Intuitive graphical FTP client
+- Supports: FTP, SFTP (Secure File Transfer Protocol), FTPS (FTP Secured)
+- Used to transfer files to/from FTP servers
+
+**Pidgin:**
+- Access multiple messaging networks:
+  - GTalk, AIM, ICQ, MSN, IRC
+
+**Hexchat:**
+- Access Internet Relay Chat (IRC) networks
+
+---
+
+### Office applications (productivity suites)
+
+**What office suites provide:**
+- Collection of closely coupled programs
+- Create and edit different file types:
+  - Text (articles, books, reports)
+  - Spreadsheets
+  - Presentations
+  - Graphical objects
+
+**LibreOffice:**
+- Most widely used open source office suite on Linux
+- Started in 2010, evolved from OpenOffice
+- Most mature, widely used, intensely developed
+
+**Additional options:**
+- Internet-based office suites:
+  - Google Docs
+  - Microsoft Office 365
+
+---
+
+### LibreOffice components
+
+**Main applications:**
+
+| Component | Purpose |
+|-----------|---------|
+| Writer | Word processing |
+| Calc | Spreadsheets |
+| Impress | Presentations |
+| Draw | Create and edit graphics and diagrams |
+
+**Compatibility:**
+- Can read and write non-native document formats (Microsoft Office)
+- Fidelity usually maintained well
+- Complicated documents might have imperfect conversions
+
+---
+
+### Development applications
+
+**What's included in Linux distributions:**
+- Complete set of tools for developing/maintaining applications and kernel
+- Tools are tightly integrated
+
+**Categories:**
+
+**Text editors:**
+- Advanced editors customized for programmers
+- Examples: vi, emacs
+
+**Compilers:**
+- gcc and clang for C and C++
+- Support for every computer language
+- Including newer languages: Golang, Rust
+
+**Debuggers:**
+- gdb
+- Graphical front ends to gdb
+- Other debugging tools (Valgrind)
+
+**Performance tools:**
+- Measuring and monitoring programs
+- Graphical interfaces available
+- Advanced tools for experienced engineers
+
+**Version control:**
+- git (with GitHub and GitLab interfaces)
+- Older systems: Apache Subversion
+
+**Integrated Development Environments (IDEs):**
+- Eclipse
+- Visual Studio Code
+- Put all tools together in one interface
+
+**Key advantage:**
+- All tools available at no cost on Linux
+- Install via standard package management or direct download
+- Other operating systems: tools must be obtained separately, often at high cost
+
+---
+
+### Sound players
+
+**Amarok:**
+- Mature MP3 player with graphical interface
+- Plays audio and video files, streams (online audio)
+- Create playlists containing groups of songs
+- Database stores music collection information
+
+**Audacity:**
+- Record and edit sounds
+- Simple interface
+
+**Audacious:**
+- Smart audio media player
+
+**Rhythmbox:**
+- Supports variety of digital music sources
+  - Streaming Internet audio
+  - Podcasts
+- Search for audio in library
+- Smart playlists with automatic update
+- Revise playlists based on selection criteria
+
+---
+
+### Movie players
+
+**What they do:**
+- Portray input from many sources (local or Internet)
+
+**Available players:**
+- VLC
+- MPlayer
+- Xine
+- Totem
+
+---
+
+### Movie editors
+
+**Blender:**
+- Create 3D animation and design
+- Professional tool using modeling as starting point
+- Complex and powerful tools for:
+  - Camera capture
+  - Recording
+  - Editing
+  - Enhancing
+  - Creating video
+
+**Cinelerra:**
+- Capture, compose, and edit audio/video
+
+**FFmpeg:**
+- Record, convert, and stream audio/video
+- Format converter
+- Includes other tools: ffplay, ffserver
+
+---
+
+### GIMP (GNU Image Manipulation Program)
+
+**What it is:**
+- Feature-rich image retouching and editing tool
+- Similar to Adobe Photoshop
+- Available on all Linux distributions
+
+**Supported formats:**
+- JPEG (JPG) - Joint Photographic Experts Group
+- PNG - Portable Network Graphics
+- GIF - Graphics Interchange Format
+- TIFF - Tagged Image File Format
+
+**Features:**
+- Handle any image file format
+- Many special purpose plugins and filters
+- Extensive image information:
+  - Layers
+  - Channels
+  - Histograms
+
+---
+
+### Other graphics utilities
+
+**Eye of Gnome (eog):**
+- Image viewer
+- Slide show capability
+- Image editing tools: rotate, resize
+- Step through images in directory with one click
+
+**Inkscape:**
+- Image editor with extensive editing features
+- Works with layers and transformations
+- Sometimes compared to Adobe Illustrator
+
+**convert:**
+- Command line tool (part of ImageMagick)
+- Modify image files in many ways
+- File format conversion
+- Image modification options: blur, resize, despeckle
+
+**Scribus:**
+- Creating documents for publishing
+- WYSIWYG (What You See Is What You Get) environment
+- Numerous editing tools
+
+---
+
+### Chapter 7 summary
+
+**Key concepts covered:**
+
+- **Internet applications:**
+  - Wide variety available
+  - Graphical and text-based browsers (Firefox, Chrome, w3m, lynx)
+  - Email clients (Thunderbird, Evolution, Mutt, mail)
+  - Other applications (FileZilla, Pidgin, Hexchat)
+
+- **Office productivity:**
+  - LibreOffice for creating and editing documents
+  - Components: Writer, Calc, Impress, Draw
+
+- **Development:**
+  - Complete suites of development tools
+  - Compilers, debuggers, editors, version control
+  - IDEs (Eclipse, Visual Studio Code)
+
+- **Multimedia:**
+  - Sound players: Amarok, Audacity, Audacious, Rhythmbox
+  - Movie players: VLC, MPlayer, Xine, Totem
+  - Movie editors: Blender, Cinelerra, FFmpeg
+
+- **Graphics:**
+  - GIMP for image editing (similar to Photoshop)
+  - Other utilities: eog, Inkscape, convert, Scribus
+
+---
+
+## Chapter 8: Command line operations
+
+### Learning objectives
+
+By the end of this chapter, I should be able to:
+- Use command line to perform operations in Linux
+- Search for files
+- Create and manage files
+- Install and update software
+
+---
+
+### Introduction to the command line
+
+**Why command line matters:**
+- System administrators spend significant time at command line prompt
+- Often automate and troubleshoot tasks in text environment
+
+**Key saying:**
+> "Graphical user interfaces make easy tasks easier, while command line interfaces make difficult tasks possible"
+
+**Advantages:**
+- No GUI overhead
+- Virtually any task can be accomplished
+- Can implement scripts for often-used tasks
+- Can sign into remote machines anywhere on Internet
+- Can initiate graphical applications directly
+- Command line interface doesn't vary among distributions (unlike graphical tools)
+
+---
+
+### Terminal emulator programs
+
+**What they do:**
+- Emulate standalone terminal within window on desktop
+- Behave as if logging into machine at pure text terminal
+- Support multiple terminal sessions (tabs or windows)
+
+**Available programs:**
+- **gnome-terminal:** Default on GNOME desktop
+- **xterm**
+- **konsole:** Default on KDE
+- **terminator**
+
+---
+
+### Launching terminal windows
+
+**GNOME systems:**
+
+**Method 1:**
+- Applications → System Tools → Terminal
+- OR Applications → Utilities → Terminal
+- (May need to install gnome-shell-extension package)
+
+**Method 2:**
+- Right-click on desktop background
+- Select "Open in Terminal"
+- (May need to install gnome-shell-extension-apps-menu package)
+
+**Method 3:**
+- Hit `Alt-F2`
+- Type `gnome-terminal`
+
+**Pro tip:** Pin terminal icon to panel or add to Favorites for easy access
+
+---
+
+### Basic command line utilities
+
+**Essential utilities (used constantly):**
+
+| Command | Usage |
+|---------|-------|
+| `cat` | Type out a file (or combine files) |
+| `head` | Show first few lines of a file |
+| `tail` | Show last few lines of a file |
+| `man` | View documentation |
+
+**Note:** Pipe symbol (`|`) used to have one program take output of another as input
+
+---
+
+### Command line structure
+
+**Three basic elements:**
+
+1. **Command:** Name of program or script
+2. **Options:** Modify what command does (start with `-` or `--`)
+3. **Arguments:** What the command operates on
+
+**Example:**
+```bash
+command -option argument
+```
+
+**Important notes:**
+- Many commands have no options, no arguments, or neither
+- Other elements can appear (like environment variables)
+
+---
+
+### sudo
+
+**What it does:**
+- Allows users to run programs using security privileges of another user
+- Generally used to run as root (superuser)
+
+**Setup:**
+- Many distributions (Ubuntu) configure sudo during installation
+- Others require manual configuration after installation
+
+---
+
+### Setting up sudo
+
+**If not already configured:**
+
+**Step 1: Switch to root**
+```bash
+$ su
+Password: 
+#
+```
+
+**Step 2: Create configuration file**
+```bash
+# echo "student ALL=(ALL) ALL" > /etc/sudoers.d/student
+```
+(Replace "student" with your username)
+
+**Step 3: Change permissions (some distributions require this)**
+```bash
+# chmod 440 /etc/sudoers.d/student
+```
+
+**Using sudo:**
+- Prompted for your own user password (not root password)
+- Password cached for specified time interval
+- Can configure to not require password (insecure)
+
+---
+
+### Virtual terminals (VT)
+
+**What they are:**
+- Console sessions using entire display and keyboard
+- Outside of graphical environment
+- Multiple active terminals, only one visible at a time
+- NOT the same as terminal window in GUI
+
+**Usage:**
+- One VT (usually 1 or 7) reserved for graphical environment
+- Text logins enabled on unused VTs
+
+**When useful:**
+- Problems with graphical desktop
+- Switch to text VT to troubleshoot
+
+**How to switch:**
+- `CTRL-ALT-F#` (function key for VT number)
+- Example: `CTRL-ALT-F6` for VT 6
+- If already in VT: `ALT-F#` to switch to another VT
+
+---
+
+### Turning off the graphical desktop
+
+**For systemd-based distributions:**
+
+**Stop GUI:**
+```bash
+$ sudo systemctl stop gdm
+```
+OR
+```bash
+$ sudo telinit 3
+```
+
+**Restart GUI:**
+```bash
+$ sudo systemctl start gdm
+```
+OR
+```bash
+$ sudo telinit 5
+```
+
+**Note:** Exact method differs among distributions and versions
+
+---
+
+### Logging in and out
+
+**Text terminal login:**
+- Prompts for username (`login:`)
+- Prompts for password
+- Nothing displayed when typing password (prevents others seeing it)
+
+**Remote login:**
+- Use Secure Shell (SSH)
+- Example: `ssh student@remote-server.com`
+- Can use password or cryptographic key
+
+---
+
+### Rebooting and shutting down
+
+**Preferred method: shutdown command**
+- Sends warning message
+- Prevents further logins
+- init process controls shutdown/reboot
+
+**Important:** Always shut down properly to avoid:
+- System damage
+- Data loss
+
+**Commands:**
+
+| Command | Action | Notes |
+|---------|--------|-------|
+| `halt` | `shutdown -h` | Halt system |
+| `poweroff` | `shutdown -h` | Power off system |
+| `reboot` | `shutdown -r` | Reboot system |
+
+**All require superuser (root) access**
+
+**Schedule shutdown with notification:**
+```bash
+$ sudo shutdown -h 10:00 "Shutting down for scheduled maintenance."
+```
+
+---
+
+### Locating applications
+
+**Common installation directories:**
+- `/bin`, `/usr/bin`, `/sbin`, `/usr/sbin`
+- `/opt`
+- `/usr/local/bin`, `/usr/local/sbin`
+- User account space: `/home/student/bin`
+
+**Finding programs:**
+
+**which utility:**
+```bash
+$ which diff
+/usr/bin/diff
+```
+
+**whereis utility (if which fails):**
+```bash
+$ whereis diff
+diff: /usr/bin/diff /usr/share/man/man1/diff.1.gz
+```
+- Looks in broader range of directories
+- Also locates source and man files
+
+---
+
+### Directory navigation basics
+
+**Default directory:**
+- Home directory when logging in
+- Check location: `echo $HOME`
+- Graphical terminals often open in `$HOME/Desktop`
+
+**Essential navigation commands:**
+
+| Command | Result |
+|---------|--------|
+| `pwd` | Display present working directory |
+| `cd ~` or `cd` | Change to home directory (~ is tilde) |
+| `cd ..` | Change to parent directory |
+| `cd -` | Change to previous working directory |
+
+---
+
+### Absolute vs relative paths
+
+**Absolute pathname:**
+- Begins with root directory (`/`)
+- Follows tree until reaching destination
+- Always starts with `/`
+
+**Example:**
+```bash
+$ cd /usr/bin
+```
+
+**Relative pathname:**
+- Starts from present working directory
+- Never starts with `/`
+- Uses shortcuts: `.` (current), `..` (parent), `~` (home)
+
+**Example from home directory:**
+```bash
+$ cd ../../usr/bin
+```
+
+**Multiple slashes:**
+- Allowed: `////usr//bin`
+- System sees as: `/usr/bin`
+- All but one slash ignored
+
+---
+
+### Exploring the filesystem
+
+**Useful commands:**
+
+| Command | Usage |
+|---------|-------|
+| `cd /` | Change to root directory |
+| `ls` | List contents of present directory |
+| `ls -a` | List all files (including hidden files starting with `.`) |
+| `tree` | Display tree view of filesystem |
+| `tree -d` | Display only directories (suppress files) |
+
+---
+
+### Hard links
+
+**Creating hard links:**
+```bash
+$ ln file1 file2
+```
+
+**What happens:**
+- Two names for same file
+- Share same inode number
+- Verified with `ls -li`
+
+**Important characteristics:**
+- Save space
+- Both names point to same data
+- Removing one name leaves other intact
+- File data deleted only when all links removed
+
+**Cautions:**
+- Editing behavior depends on editor
+- Some editors break the link
+- May lead to subtle errors if recreating file names
+
+---
+
+### Soft (symbolic) links
+
+**Creating symbolic links:**
+```bash
+$ ln -s file1 file3
+```
+
+**Characteristics:**
+- Points to original file
+- Different inode number
+- Takes no extra space (unless name very long)
+- Can point to different filesystems/partitions/media
+- Can create "dangling link" if target doesn't exist
+
+**Advantages:**
+- Easy to modify (point to different places)
+- Create shortcuts to long pathnames
+- More flexible than hard links
+
+---
+
+### Directory history navigation
+
+**cd with memory:**
+```bash
+$ cd -
+```
+- Returns to previous directory
+
+**pushd/popd for multiple directories:**
+- `pushd`: Change directory and push starting directory onto list
+- `popd`: Return to directories in reverse order
+- `dirs`: Display list of directories
+
+---
+
+### Viewing files
+
+**Common commands:**
+
+| Command | Usage |
+|---------|-------|
+| `cat` | View files that are not very long; no scroll-back |
+| `tac` | View file backwards (starts with last line) |
+| `less` | View larger files; paging program with scroll-back |
+| `tail` | Print last 10 lines (default); use `-n 15` or `-15` for different number |
+| `head` | Print first 10 lines (default) |
+
+**less navigation:**
+- `/` - Search forward for pattern
+- `?` - Search backward for pattern
+- More capabilities than older `more` program
+
+**Note:** "less is more"
+
+---
+
+### touch command
+
+**Primary uses:**
+
+**Update timestamps:**
+- Sets/updates access, change, and modify times
+- Default: resets to current time
+
+**Create empty file:**
+```bash
+$ touch <filename>
+```
+- Done to create placeholder for later use
+
+**Set specific timestamp:**
+```bash
+$ touch -t 12091600 myfile
+```
+- Sets to 4 p.m., December 9th (12 09 1600)
+
+---
+
+### Creating and removing directories
+
+**mkdir:**
+```bash
+$ mkdir sampdir                # In current directory
+$ mkdir /usr/sampdir           # In /usr
+```
+
+**rmdir:**
+- Removes only empty directories
+- Fails if directory contains files
+
+**Remove directory and all contents:**
+```bash
+$ rm -rf <directory>
+```
+⚠️ **Warning:** Extremely dangerous, especially as root. Use with utmost care.
+
+---
+
+### Moving, renaming, and removing files
+
+**mv command (dual purpose):**
+- Rename a file
+- Move file to another location (possibly changing name)
+
+**rm command:**
+
+| Command | Usage |
+|---------|-------|
+| `rm` | Remove a file |
+| `rm -f` | Forcefully remove a file |
+| `rm -i` | Interactively remove (prompts before removal) |
+
+**Pro tip:** Use `rm -i` when uncertain about pattern matching
+
+---
+
+### Removing directories
+
+**rmdir:**
+- Works only on empty directories
+
+**rm -rf:**
+```bash
+$ rm -rf <directory>
+```
+⚠️ **Warning:** 
+- Fast and easy way to remove entire filesystem tree
+- Extremely dangerous
+- Use with utmost care, especially as root
+- "Recursive" means drilling down through all subdirectories
+
+---
+
+### Modifying the command line prompt
+
+**PS1 variable:**
+- Controls prompt display
+
+**Example customization:**
+```bash
+$ PS1="\u@\h \$ "
+student@hostname $
+```
+
+**Common variables:**
+- `\u` - Username
+- `\h` - Hostname
+- `\$` - `$` for users, `#` for root
+
+**Convention:** Root user typically has `#` prompt
+
+---
+
+### Standard file streams
+
+**Three standard file streams (file descriptors):**
+
+| Name | Symbolic Name | Value | Example |
+|------|---------------|-------|---------|
+| Standard input | stdin | 0 | keyboard |
+| Standard output | stdout | 1 | terminal |
+| Standard error | stderr | 2 | log file |
+
+**Default behavior:**
+- stdin: Keyboard
+- stdout: Terminal
+- stderr: Terminal (often redirected to error log)
+
+**File descriptors:**
+- Represented by numbers starting at 0
+- Additional open files start at 3 and increase
+
+---
+
+### I/O redirection
+
+**Redirect input:**
+```bash
+$ do_something < input-file
+```
+
+**Redirect output:**
+```bash
+$ do_something > output-file
+```
+
+**Redirect both:**
+```bash
+$ do_something < input-file > output-file
+```
+
+**Redirect stderr:**
+```bash
+$ do_something 2> error-file
+```
+
+**Redirect stderr to same place as stdout:**
+```bash
+$ do_something > all-output-file 2>&1
+```
+
+**bash shorthand:**
+```bash
+$ do_something >& all-output-file
+```
+
+---
+
+### Pipes
+
+**UNIX/Linux philosophy:**
+- Many simple, short programs cooperate
+- Produce complex results
+- Rather than one complex program with many options
+
+**Pipe syntax:**
+```bash
+$ command1 | command2 | command3
+```
+
+**Benefits:**
+- Commands don't wait for previous to complete
+- Process data in input streams immediately
+- Better utilizes multiple CPU/cores
+- No need for temporary files
+- Saves disk space and I/O operations
+
+---
+
+### locate utility
+
+**What it does:**
+- Searches using pre-constructed database
+- Matches entries containing specified string
+- Can produce very long lists
+
+**Filter with grep:**
+```bash
+$ locate zip | grep bin
+```
+- Lists files/directories with both "zip" and "bin"
+
+**Database:**
+- Created by `updatedb` utility
+- Most systems run automatically once daily
+- Update manually: `sudo updatedb`
+
+---
+
+### Wildcards
+
+**Wildcard characters:**
+
+| Wildcard | Result |
+|----------|--------|
+| `?` | Matches any single character |
+| `*` | Matches any string of characters |
+| `[set]` | Matches any character in set (e.g., `[adf]`) |
+| `[!set]` | Matches any character NOT in set |
+
+**Examples:**
+```bash
+$ ls ba?.out         # Three-letter filename starting with "ba"
+$ ls *.out           # All files ending with .out
+```
+
+---
+
+### find command
+
+**What it does:**
+- Recurses down filesystem tree
+- Locates files matching specified conditions
+- Default: searches current directory
+
+**Common options:**
+
+| Option | Purpose |
+|--------|---------|
+| `-name` | Files with pattern in name |
+| `-iname` | Case-insensitive name search |
+| `-type` | Restrict to file type (d=directory, l=link, f=regular file) |
+
+**Examples:**
+```bash
+$ find /usr -name gcc                # All files/dirs named gcc
+$ find /usr -type d -name gcc        # Only directories named gcc
+$ find /usr -type f -name gcc        # Only regular files named gcc
+```
+
+---
+
+### Advanced find options
+
+**Execute commands on found files:**
+```bash
+$ find -name "*.swp" -exec rm {} ';'
+```
+- `{}` placeholder for found filenames
+- Must end with `';'` or `\;`
+
+**Interactive execution:**
+```bash
+$ find -name "*.swp" -ok rm {} ';'
+```
+- Prompts for permission before executing
+- Good for testing potentially dangerous commands
+
+---
+
+### Finding files by time and size
+
+**Time-based searches:**
+```bash
+$ find / -ctime 3        # Inode metadata change time
+$ find / -atime 3        # Access/last read time
+$ find / -mtime 3        # Modified/last written time
+```
+
+**Time values:**
+- `n` - Exactly n days
+- `+n` - Greater than n days
+- `-n` - Less than n days
+
+**Minute-based:** `-cmin`, `-amin`, `-mmin`
+
+**Size-based searches:**
+```bash
+$ find / -size 0         # Empty files (0 blocks)
+$ find / -size +10M      # Greater than 10 MB
+```
+
+**Size units:**
+- Default: 512-byte blocks
+- `c` - bytes
+- `k` - kilobytes
+- `M` - megabytes
+- `G` - gigabytes
+
+---
+
+### Package management systems
+
+**Two main families:**
+1. **Debian-based:** dpkg/apt
+2. **RPM-based:** rpm/dnf/zypper
+
+**Key concept:**
+- Incompatible with each other
+- Provide same essential features
+- Satisfy same needs
+
+**Two levels of tools:**
+
+**Low-level:**
+- dpkg (Debian) or rpm (Red Hat)
+- Handles unpacking packages
+- Runs scripts
+- Gets software installed
+
+**High-level:**
+- apt (Debian), dnf (Red Hat), zypper (SUSE)
+- Works with groups of packages
+- Downloads from vendor
+- Resolves dependencies
+
+**Important:** Dependency resolution is key feature of high-level tools
+
+---
+
+### Package management commands
+
+**Common operations:**
+
+| Operation | RPM | DEB |
+|-----------|-----|-----|
+| Install package | `rpm -i foo.rpm` | `dpkg --install foo.deb` |
+| Install with dependencies | `dnf install foo` | `apt install foo` |
+| Remove package | `rpm -e foo.rpm` | `dpkg --remove foo.deb` |
+| Remove with dependencies | `dnf remove foo` | `apt autoremove foo` |
+| Update package | `rpm -U foo.rpm` | `dpkg --install foo.deb` |
+| Update with dependencies | `dnf update foo` | `apt install foo` |
+| Update entire system | `dnf update` | `apt dist-upgrade` |
+| Show installed packages | `rpm -qa` or `dnf list installed` | `dpkg --list` |
+| Get package info | `rpm -qil foo` | `dpkg --listfiles foo` |
+| Search for package | `dnf list "foo"` | `apt-cache search foo` |
+| Show all available | `dnf list` | `apt-cache dumpavail foo` |
+| Find package for file | `rpm -qf file` | `dpkg --search file` |
+
+---
+
+### Chapter 8 summary
+
+**Key concepts covered:**
+
+- **Virtual terminals (VT):**
+  - Console sessions outside graphical environment
+  - Switch with `CTRL-ALT-F#`
+
+- **Terminal emulators:**
+  - Emulate terminal within window on desktop
+
+- **Login/passwords:**
+  - Nothing printed when typing password
+  - Can log in via text terminal or remotely
+
+- **Shutdown:**
+  - Preferred method: `shutdown` command
+
+- **Pathnames:**
+  - Absolute: starts with `/`, follows tree from root
+  - Relative: starts from present working directory
+
+- **Links:**
+  - Hard links: multiple names for same inode
+  - Soft links: pointers to files/directories
+
+- **Command shortcuts:**
+  - `cd -`: returns to previous directory
+
+- **File utilities:**
+  - `locate`: database search for filenames
+  - `find`: recursive search with extensive options
+  - `touch`: set file times, create empty files
+
+- **Package management:**
+  - apt: Debian-based systems
+  - dnf: RPM-based Red Hat family
+  - zypper: RPM-based SUSE/openSUSE
+
+---
