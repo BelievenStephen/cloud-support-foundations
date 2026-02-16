@@ -532,3 +532,101 @@ Networking protocols define many aspects of communication over the local network
 - TCP/IP model has four layers, each with specific functions
 
 ---
+
+---
+
+## Feb 16, 2026
+
+### OSI Reference Model (5.3.4)
+
+**Protocol model vs Reference model:**
+
+**Protocol model:**
+- Closely matches the structure of a particular protocol suite
+- Describes functions that occur at each layer of protocols within the suite
+- Example: TCP/IP model (describes TCP/IP suite functions)
+
+**Reference model:**
+- Describes functions that must be completed at a particular layer
+- Does not specify exactly how a function should be accomplished
+- Purpose: Aid in clearer understanding of functions and processes necessary for network communications
+- Example: OSI model
+
+**OSI Model:**
+- Created by the Open Systems Interconnection (OSI) project at ISO
+- Used for data network design, operation specifications, and troubleshooting
+
+**OSI Model layers:**
+
+| Layer | Name | Description |
+|-------|------|-------------|
+| 7 | Application | Contains protocols used for process-to-process communications |
+| 6 | Presentation | Provides common representation of data transferred between application layer services |
+| 5 | Session | Provides services to organize dialogue and manage data exchange |
+| 4 | Transport | Defines services to segment, transfer, and reassemble data for individual communications |
+| 3 | Network | Provides services to exchange individual pieces of data over the network between identified end devices |
+| 2 | Data Link | Describes methods for exchanging data frames between devices over common media |
+| 1 | Physical | Describes mechanical, electrical, functional, and procedural means to activate, maintain, and deactivate physical connections for bit transmission |
+
+---
+
+### OSI Model and TCP/IP Model Comparison (5.3.5)
+
+**Why learn both models?**
+
+**TCP/IP model:**
+- Method of visualizing interactions of protocols in the TCP/IP protocol suite
+- Describes networking functions specific to TCP/IP protocols
+- Does not describe general functions necessary for all networking communications
+- Example: Network access layer does not specify which protocols to use for physical transmission or signal encoding method
+
+**OSI model:**
+- Provides more granular layer breakdown
+- OSI Layers 1 and 2 (Physical and Data Link) discuss procedures to access media and physical means to send data
+- OSI model further divides TCP/IP's network access layer and application layer to describe discrete functions
+
+**Layer mapping:**
+- TCP/IP Internet layer = OSI Network layer (Layer 3)
+- TCP/IP Transport layer = OSI Transport layer (Layer 4)
+- TCP/IP Application layer maps to OSI Layers 5, 6, and 7
+- TCP/IP Network Access layer maps to OSI Layers 1 and 2
+
+---
+
+### Module 5 Summary (5.4.1)
+
+**Communication Protocols:**
+- Protocols required for computers to properly communicate across the network
+- Key protocol characteristics:
+  - **Message format:** Specific format/structure required
+  - **Message size:** Strict rules, vary by channel, long messages broken into smaller pieces
+  - **Timing:** Speed of bit transmission, when host can send, total data amount per transmission
+  - **Encoding:** Bits encoded into sounds, light waves, or electrical impulses (depends on media)
+  - **Encapsulation:** Adding header with addressing info (source and destination)
+  - **Message pattern:** Some require acknowledgment (request/response), others stream without delivery confirmation
+
+**Communication Standards:**
+- Standards ensure all devices implement same rules/protocols in same manner
+- Enable different device types to communicate over the internet
+- Development process: discussion, problem solving, testing
+- **IETF:** Publishes and manages internet standards
+- **RFC (Request for Comments):** Numbered documents tracking evolution of standards
+
+**Network Communication Models:**
+- Protocols can be illustrated as a protocol stack (layered hierarchy)
+- Each higher-level protocol depends on services of lower levels
+- Separation of functions enables each layer to operate independently
+
+**TCP/IP protocol suite structure:**
+- **Application:** Represents data to user, plus encoding and dialog control
+- **Transport:** Supports communication between devices across diverse networks
+- **Internet:** Determines best path through network
+- **Network Access:** Hardware devices and media that make up the network
+
+**OSI Reference Model:**
+- Aid for clearer understanding of functions and processes
+- Used for data network design, operation specifications, and troubleshooting
+- Seven layers (Application, Presentation, Session, Transport, Network, Data Link, Physical)
+- Each layer has specific functions and responsibilities
+
+---
