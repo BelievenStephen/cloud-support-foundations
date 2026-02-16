@@ -52,3 +52,41 @@ Common examples:
 ## Notes
 - **Explicit deny > allow**
 - Many “it should be allowed” cases are actually: boundary/SCP/resource policy
+
+---
+
+## Lab Example: S3 Upload AccessDenied (Feb 16, 2026)
+
+### Scenario
+S3 console upload failed with `Access denied` error despite having AdministratorAccess policy.
+
+### Context captured
+- **Error:** `Access denied` (S3 console upload)
+- **Principal:** IAM user `stephen-admin`
+  - ARN: `arn:aws:iam::886219357247:user/stephen-admin`
+- **Action:** `s3:PutObject`
+- **Resource:** `arn:aws:s3:::stephen-accessdenied-lab-2-16-26/*`
+
+### Investigation steps
+1. **Verified principal type:** IAM user (not assumed role)
+2. **Checked identity-based policies:** AdministratorAccess attached (broad allow)
+3. **Searched for explicit deny:** Found deny in bucket policy
+
+### Root cause
+Bucket policy contained explicit `Deny` for `s3:PutObject` targeting the principal.
+
+**Key rule proven:** Explicit deny overrides all allows, including AdministratorAccess.
+
+### Resolution
+Remove or modify the bucket policy Deny statement:
+- Narrow scope to different prefix
+- Add condition to exclude specific principals
+- Remove deny statement entirely (if appropriate)
+
+### Verification
+- Retry S3 upload in console
+- Upload succeeds after bucket policy adjustment
+- CloudTrail shows `s3:PutObject` with `errorCode: null` (success)
+
+### Takeaway
+When identity policies look correct but access is denied, check **resource-based policies** (bucket policies, key policies) for explicit deny statements.
