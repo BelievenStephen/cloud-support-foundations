@@ -269,3 +269,177 @@ ssh -v <user>@13.52.179.133
 4. Connection succeeds, SSH fails → check username, key, permissions
 
 ---
+
+## Feb 18, 2026
+
+### IAM Basics Review + AccessDenied Patterns
+
+**Principal verification:**
+- Confirmed working as IAM user `stephen-admin` (not an assumed role)
+- Permission sources:
+  - AdministratorAccess attached directly to user
+  - AdministratorAccess via Admins group membership
+- Permission boundary: None set
+- MFA: Enabled
+- Access keys: None (no long-lived credentials on this user)
+
+---
+
+### AccessDenied Debugging Framework
+
+**Step 1: Identify the context (the "3 Ws"):**
+1. **Who:** Principal identity (user, role, service)
+2. **What:** Exact action denied (e.g., `s3:GetObject`)
+3. **Where:** Full resource ARN
+
+**Step 2: Check policy layers systematically:**
+1. Identity policies (user/group/role policies)
+2. Resource policies (bucket policy, key policy, etc.)
+3. Permission boundaries (if set)
+4. SCPs (if Organizations)
+5. Session policies (if temporary credentials)
+
+**Step 3: Apply "explicit deny wins" rule:**
+- Any `Deny` in any policy layer overrides all `Allow` statements
+- Check all policy layers for explicit denies before assuming missing allow
+
+**Step 4: Validate accuracy:**
+- Correct region for the resource
+- Correct ARN format
+- Correct API action name
+
+---
+
+### User Credentials vs EC2 Instance Role Credentials
+
+**User credentials:**
+- Who: My identity when working in console/CLI on my laptop
+- Source: Long-term credentials (password, MFA, access keys if created)
+- Permissions: Based on my user's identity policies + group policies
+
+**EC2 instance role credentials:**
+- Who: Temporary credentials available to applications running on EC2
+- Source: Instance profile → IAM role → STS temporary credentials via IMDS
+- Permissions: Based on the role's identity policies
+- Delivery: Available at `http://169.254.169.254/latest/meta-data/iam/security-credentials/<role-name>`
+
+**Key distinction:** Instance needs an attached IAM role (via instance profile) to have credentials. Without a role, the instance has no AWS credentials.
+
+---
+
+### EC2 Instance Role Verification
+
+**Checked my bastion instance:**
+- No IAM role attached
+- Result: Instance has no default credentials to make AWS API calls
+
+**How to verify instance role:**
+- EC2 Console → Instance → Security tab → IAM role
+- OR from the instance: `curl http://169.254.169.254/latest/meta-data/iam/security-credentials/`
+
+---
+
+### Support Mapping: "AccessDenied When Calling AWS API"
+
+**Troubleshooting checklist:**
+
+**1) Confirm principal identity:**
+```bash
+aws sts get-caller-identity
+```
+- Returns: User ARN or assumed-role ARN
+- Confirms who the API client thinks it is
+
+**2) Verify action + resource:**
+- Exact API action from error message
+- Full resource ARN (check for typos, wrong region, wrong account ID)
+
+**3) Search for explicit deny:**
+- Identity policies
+- Resource policies
+- Permission boundaries
+- SCPs
+- Session policies (if using temporary credentials)
+
+**4) Check for missing allow:**
+- Identity policy must explicitly allow the action on the resource
+- Default deny applies if no explicit allow
+
+**5) Validate region and ARN accuracy:**
+- Some resources are region-specific
+- ARN must match exactly (account ID, region, resource name)
+
+---
+
+### Support Mapping: "EC2 Instance Cannot Access S3"
+
+**Troubleshooting flow:**
+
+**Step 1: Check if instance profile role is attached**
+- EC2 Console → Instance → Security tab → IAM role
+- If **no role attached:**
+  - Instance has no credentials to call AWS APIs
+  - **Fix:** Attach an IAM role with necessary S3 permissions
+
+**Step 2: If role is attached, check role policy**
+- IAM Console → Roles → Select role → Permissions
+- Verify role policy allows required S3 actions:
+  - `s3:GetObject` for reading objects
+  - `s3:PutObject` for writing objects
+  - `s3:ListBucket` for listing bucket contents
+
+**Step 3: Check bucket policy**
+- S3 Console → Bucket → Permissions → Bucket policy
+- Look for explicit `Deny` statements
+- Verify no conflicting conditions (source IP, VPC endpoint, etc.)
+
+**Step 4: Check for encryption (if applicable)**
+- If bucket uses SSE-KMS encryption:
+  - Role must have `kms:Decrypt` permission for the KMS key
+  - KMS key policy must allow the role to use the key
+
+**Step 5: Verify from the instance**
+```bash
+# Check if role credentials are available
+curl http://169.254.169.254/latest/meta-data/iam/security-credentials/
+
+# Test S3 access
+aws s3 ls s3://bucket-name/
+aws s3 cp s3://bucket-name/file.txt /tmp/
+```
+
+---
+
+### Common Root Cause Patterns
+
+| Symptom | Common Causes | Where to Check |
+|---------|--------------|----------------|
+| AccessDenied with no role attached | Instance has no credentials | EC2 → Security tab → IAM role |
+| AccessDenied with role attached | Role policy missing action | IAM → Role → Permissions |
+| AccessDenied despite broad role policy | Bucket policy explicit deny | S3 → Bucket → Permissions → Bucket policy |
+| AccessDenied on encrypted objects | Missing KMS permissions | Role policy + KMS key policy |
+| AccessDenied intermittently | Session policy limiting temp creds | Check how temporary credentials are obtained |
+
+---
+
+### Key Takeaways
+
+**Separation of concerns:**
+- **Identity policy issues:** Missing allow, permission boundary limiting access
+- **Resource policy issues:** Bucket policy deny, KMS key policy deny
+- Always identify which layer is causing the deny before attempting fixes
+
+**Debugging priority:**
+1. Confirm principal (who am I?)
+2. Identify action + resource (what am I trying to do, where?)
+3. Search for explicit denies (any layer)
+4. Verify explicit allow exists (identity policy or resource policy)
+5. Check for higher-level restrictions (boundaries, SCPs, session policies)
+
+**EC2 instance credentials:**
+- Instance must have an attached IAM role to access AWS services
+- Role credentials are temporary and rotated automatically via IMDS
+- Role policy must allow the needed actions
+- Resource policies (bucket, key) can still block access even with correct role policy
+
+---
