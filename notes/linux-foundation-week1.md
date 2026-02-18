@@ -2362,3 +2362,304 @@ $ find / -size +10M      # Greater than 10 MB
   - zypper: RPM-based SUSE/openSUSE
 
 ---
+
+## Feb 18, 2026
+
+## Chapter 9: Finding Linux documentation
+
+### Learning objectives
+
+By the end of this chapter, I should be able to:
+- Use different sources of documentation
+- Use the man pages
+- Access the GNU Info System
+- Use the help command and --help option
+- Use other documentation sources
+
+---
+
+### Linux documentation sources overview
+
+**Why documentation matters:**
+- Won't always know proper use of programs/utilities
+- Need to know: what command, what options, what results to expect
+- Will need to consult help documentation regularly
+
+**Important sources:**
+- The man pages (manual pages)
+- GNU Info
+- The help command and --help option
+- Other documentation sources (distribution-specific handbooks, wikis)
+
+**Note:** Distributors consolidate documentation and present it in comprehensive, easy-to-use manner
+
+---
+
+### The man pages
+
+**What they are:**
+- Most often-used source of Linux documentation
+- Provide in-depth documentation about:
+  - Programs and utilities
+  - Configuration files
+  - Programming APIs for system calls
+  - Library routines
+  - The kernel
+- Present on all Linux distributions
+- Always available
+
+**History:**
+- Introduced in early UNIX versions (beginning of 1970s)
+- "man" = abbreviation for "manual"
+
+**Usage:**
+```bash
+man <topic>
+```
+
+**Other formats:**
+- Often converted to PDF documents and web pages
+- Many graphical help interfaces include man pages
+- Linux man pages available online
+
+---
+
+### Using the man program
+
+**What it does:**
+- Searches, formats, and displays information from man page system
+- Output piped through pager program (like `less`) for one page at a time
+- Information formatted for good visual display
+
+**Important options:**
+
+| Option | Function | Equivalent |
+|--------|----------|------------|
+| `man -f <topic>` | List all pages on topic | `whatis` |
+| `man -k <topic>` | List all pages discussing topic | `apropos` |
+
+**Section order:**
+- Default order specified in `/etc/man_db.conf`
+- Roughly in ascending numerical order by section
+- Given topic may have multiple pages
+
+---
+
+### GNU Info System
+
+**What it is:**
+- GNU project's standard documentation format
+- Preferred alternative to man pages
+- Free-form format supporting linked subsections
+
+**Key characteristics:**
+- Topics connected using links (predates World Wide Web)
+- Information viewable through:
+  - Command line interface
+  - Graphical help utility
+  - Printed format
+  - Online
+
+**Comparison to man:**
+- Similar functionality in many ways
+- Often provides more complete information
+- Example: `man ls` vs `info ls` (count the lines)
+- Interface may seem outdated but is important to learn
+
+---
+
+### Using info from command line
+
+**Basic usage:**
+
+**View index of available topics:**
+```bash
+info
+```
+
+**View specific topic:**
+```bash
+info <topic name>
+```
+
+**Navigation:**
+- Regular movement keys work (arrows, Page Up, Page Down)
+- Browse through topic list
+
+**Useful keys:**
+
+| Key | Function |
+|-----|----------|
+| `q` | Quit |
+| `h` | Help |
+| `Enter` | Select menu item |
+
+---
+
+### Info page structure
+
+**Nodes:**
+- Topic viewed in info page = "node"
+- Essentially sections and subsections
+- Can move between nodes or view sequentially
+- Each node may contain menus and linked subtopics (items)
+
+**Navigation between nodes:**
+
+| Key | Function |
+|-----|----------|
+| `n` | Go to next node |
+| `p` | Go to previous node |
+| `u` | Move one node up in index |
+
+**Items (links):**
+- Function like browser links
+- Identified by asterisk (`*`) at beginning of item name
+- Named items (outside menu) identified with double-colons (`::`)
+- Can refer to other nodes within file or to other files
+
+---
+
+### The --help option
+
+**What it provides:**
+- Short description of commands
+- Quick reference
+- Faster than man or info pages
+
+**Usage:**
+```bash
+<command> --help
+```
+OR
+```bash
+<command> -h
+```
+
+**Example:**
+```bash
+$ man --help
+```
+
+---
+
+### The help command
+
+**For bash built-in commands:**
+- Some popular commands (like `echo` and `cd`) run as bash built-ins
+- More efficient (faster execution, fewer resources)
+- Built-in versions run instead of binaries in `/bin` or `/usr/bin`
+
+**Note:** Can be some (usually small) differences between built-in and standalone versions
+
+**View synopsis of built-in commands:**
+```bash
+help
+```
+
+**Function:** Similar to `-h` and `--help` for standalone programs
+
+---
+
+### Other documentation sources
+
+**Desktop help systems:**
+- All Linux desktop systems have graphical help application
+- Usually displayed as question-mark icon or life preserver image
+- Found in menu system
+- Contains:
+  - Custom help for desktop
+  - Help for some applications
+  - Graphically-rendered info and man pages
+
+**Launch from terminal:**
+
+**GNOME:**
+```bash
+gnome-help
+```
+OR
+```bash
+yelp
+```
+
+**KDE:**
+```bash
+khelpcenter
+```
+
+---
+
+### Package documentation
+
+**Location:** `/usr/share/doc`
+
+**What it contains:**
+- Documentation from upstream source code
+- Information about how distribution packaged and set up software
+- Grouped in subdirectories named after each package
+
+---
+
+### Online resources
+
+**Recommended book:**
+- "The Linux Command Line" by William Shotts
+- Free, downloadable command line compendium
+- Under Creative Commons license
+- Well-reviewed by course users
+
+**Distribution-specific documentation:**
+- Each distribution has user-generated forums and wiki sections
+
+**Examples:**
+- Ubuntu Documentation
+- CentOS Documentation
+- openSUSE Documentation
+- Gentoo Documentation
+- Fedora Documentation
+
+**Additional sources:**
+- Online search sites
+- Blog posts
+- Forum and mailing list posts
+- News articles
+
+---
+
+### Chapter 9 summary
+
+**Key concepts covered:**
+
+- **Main documentation sources:**
+  - man pages
+  - GNU Info
+  - help options and command
+  - Rich variety of online sources
+
+- **man utility:**
+  - Searches, formats, and displays man pages
+  - Provides in-depth documentation about:
+    - Programs and topics
+    - Configuration files
+    - System calls
+    - Library routines
+    - The kernel
+
+- **GNU Info System:**
+  - Created by GNU project as standard documentation
+  - Robust and accessible via:
+    - Command line
+    - Web
+    - Graphical tools using `info`
+
+- **Quick help:**
+  - Short descriptions with `-h` or `--help` argument
+  - `help` command displays synopsis of built-in commands
+
+- **Other resources:**
+  - Many help resources on system and Internet
+  - Distribution-specific documentation
+  - Package documentation in `/usr/share/doc`
+
+---
