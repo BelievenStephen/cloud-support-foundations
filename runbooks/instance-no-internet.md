@@ -203,3 +203,59 @@ curl -I --connect-timeout 5 --max-time 10 https://example.com
 - NAT Gateway in a private subnet (NAT must be in public subnet)
 - Private route table points to IGW instead of NAT (instances without public IPs cannot use IGW directly)
 - Editing the wrong route table (check which route table is associated with the subnet)
+
+---
+
+## Cost Management and Lab Cleanup
+
+### NAT Gateway Costs
+NAT Gateways incur charges while they exist:
+- **Hourly charge:** Billed per hour the NAT Gateway exists (even if unused)
+- **Data processing charge:** Billed per GB of data processed through the NAT Gateway
+
+**Important:** Charges accrue even when the NAT Gateway is idle. Always clean up after testing.
+
+---
+
+### Cleanup Order (After Testing)
+
+Follow this order to avoid leaving billable resources:
+
+**1) Delete NAT Gateway**
+- VPC Console → NAT gateways
+- Select NAT Gateway → Actions → Delete NAT gateway
+- Wait until State = **Deleted** (may take a few minutes)
+
+**2) Release Elastic IP**
+- VPC Console → Elastic IPs
+- Select EIP that was allocated for the NAT Gateway
+- Actions → Release Elastic IP address
+- Verify: 0 Elastic IPs listed (or all are in use by other resources)
+
+**3) Clean Up Route Table (Optional)**
+- VPC Console → Route tables
+- Select private subnet's route table
+- Routes tab → Select `0.0.0.0/0 → nat-...` → Delete route
+- Note: Only remove if you're done testing private subnet internet access
+
+**4) Terminate Lab Instances**
+- EC2 Console → Instances
+- Select lab instances → Instance state → Terminate instance
+- Verify: No unattached EBS volumes remain (check Volumes section)
+
+---
+
+### Quick "No Silent Charges" Verification
+
+Run this checklist before ending your session:
+
+| Resource | Where to Check | Expected State |
+|----------|---------------|----------------|
+| NAT Gateways | VPC → NAT gateways | Empty list or all "Deleted" |
+| Elastic IPs | VPC → Elastic IPs | Empty list or all associated with active resources |
+| Unattached Volumes | EC2 → Volumes | Filter by "available" → should be empty |
+| Running Instances | EC2 → Instances | Only instances you intend to keep running |
+
+**Tip:** Set up a billing alert in AWS Budgets to catch unexpected charges early.
+
+---
