@@ -443,3 +443,213 @@ aws s3 cp s3://bucket-name/file.txt /tmp/
 - Resource policies (bucket, key) can still block access even with correct role policy
 
 ---
+
+## Feb 19, 2026
+
+### S3 Access Control + Block Public Access + 403/404 Patterns
+
+**Lab setup:**
+- Created bucket: `stephen-s3-access-lab-0219` (us-west-1)
+- Initial state:
+  - Block Public Access (BPA): **ON** at bucket level
+  - Bucket policy: None
+  - Object Ownership: **Bucket owner enforced** (ACLs disabled)
+- Uploaded test object: `public-test.txt`
+- Captured object URL for anonymous testing
+
+---
+
+### Block Public Access (BPA) Behavior
+
+**Attempted to add public-read bucket policy:**
+- With BPA **ON:** S3 blocked policy from saving (cannot allow public access)
+- With BPA **OFF:** Policy saved successfully
+
+**Policy test after BPA disabled:**
+```bash
+curl -I <object-url>
+```
+**Result:** HTTP 403 Forbidden (despite bucket policy allowing public read)
+
+**Missing object test:**
+```bash
+curl -I <object-url-with-wrong-key>
+```
+**Result:** HTTP 403 Forbidden (same as existing object)
+
+**Key insight:** S3 returns 403 instead of 404 when the caller is not allowed to know if the object exists.
+
+---
+
+### Multi-Layer BPA Architecture
+
+**Two levels of Block Public Access:**
+
+1. **Account-level BPA:**
+   - S3 Console → Block Public Access settings for this account
+   - Applied to all buckets in the account
+   - Can block public access even when bucket-level BPA is off
+
+2. **Bucket-level BPA:**
+   - S3 Console → Bucket → Permissions → Block public access
+   - Applied only to this specific bucket
+   - Can be overridden by account-level BPA
+
+**Important:** Both layers must allow public access for a bucket policy to grant public access.
+
+---
+
+### Object Ownership and ACL Mode
+
+**Object Ownership setting: Bucket owner enforced**
+- ACLs are **disabled**
+- Access control is via **policies only** (IAM policies + bucket policies)
+- No per-object ACL configuration available
+
+**Alternative setting: Object writer (not used in this lab):**
+- ACLs enabled
+- Object uploader can set per-object ACLs
+- Access controlled by combination of policies + ACLs
+
+**Key takeaway:** With "Bucket owner enforced," ACLs cannot be used. All access must be granted via IAM policies or bucket policies.
+
+---
+
+### Identity Policy vs Bucket Policy (Reinforced)
+
+**Identity policy:**
+- Attached to: IAM users, groups, or roles
+- Scope: Grants permissions to the principal
+- Example: My user's AdministratorAccess allows `s3:*` on all buckets
+- Cannot grant public access (no way to specify `Principal: "*"`)
+
+**Bucket policy:**
+- Attached to: S3 bucket
+- Scope: Controls who can access this bucket
+- Can explicitly allow or deny specific principals
+- Can grant public access using `Principal: "*"`
+- Example:
+```json
+{
+  "Effect": "Allow",
+  "Principal": "*",
+  "Action": "s3:GetObject",
+  "Resource": "arn:aws:s3:::bucket-name/*"
+}
+```
+
+---
+
+### Support Mapping: "Public Object Returns AccessDenied (403)"
+
+**Troubleshooting checklist (in order):**
+
+**1) Check account-level Block Public Access:**
+- S3 Console → Block Public Access settings for this account
+- Verify all four settings are **OFF** if public access is required
+- Account-level BPA overrides bucket-level settings
+
+**2) Check bucket-level Block Public Access:**
+- S3 Console → Bucket → Permissions → Block public access
+- Verify settings are **OFF** if public access is required
+
+**3) Review bucket policy:**
+- S3 Console → Bucket → Permissions → Bucket policy
+- Verify policy explicitly allows public access:
+  - `"Principal": "*"`
+  - `"Action": "s3:GetObject"`
+  - `"Resource": "arn:aws:s3:::bucket-name/*"`
+- Check for explicit `Deny` statements
+
+**4) Check Object Ownership mode:**
+- S3 Console → Bucket → Permissions → Object Ownership
+- If "Bucket owner enforced": ACLs disabled, use policies only
+- If "Object writer": Check both policies and per-object ACLs
+
+**5) Verify action + resource ARN:**
+- Confirm exact action needed: `s3:GetObject` for reading objects
+- Verify resource ARN matches object path exactly
+- Format: `arn:aws:s3:::bucket-name/object-key`
+
+---
+
+### 403 vs 404 Response Codes
+
+**HTTP 403 Forbidden:**
+- Meaning: Request blocked by permissions, BPA, or policy constraints
+- S3 behavior: Also used when object doesn't exist but caller is not allowed to know (security through obscurity)
+
+**HTTP 404 Not Found:**
+- Meaning: Wrong bucket name, wrong object key, wrong region, or object genuinely missing
+- S3 behavior: Only returned when the caller has permission to know if the object exists
+
+**Decision rule:**
+- If anonymous request → expect 403 for both "access denied" and "object missing" (when BPA is on)
+- If authenticated request with list permissions → expect 404 for missing objects
+
+---
+
+### S3 Public Access Decision Tree
+
+**When debugging public access issues:**
+
+**1) Identify the context (the "3 Ws"):**
+- **Who:** Principal making the request (anonymous `*` or specific principal)
+- **What:** Action needed (`s3:GetObject`, `s3:ListBucket`, etc.)
+- **Where:** Exact resource ARN (bucket or object key)
+
+**2) Check BPA layers (most common blocker):**
+- Account-level BPA settings
+- Bucket-level BPA settings
+- Both must allow public access
+
+**3) Review policy layers:**
+- Bucket policy must explicitly allow `Principal: "*"`
+- Identity policy (if authenticated) must allow the action
+- Check for explicit denies
+
+**4) Validate Object Ownership mode:**
+- Bucket owner enforced → policies only
+- Object writer → check policies + ACLs
+
+---
+
+### Common Root Cause Patterns
+
+| Symptom | Common Causes | Where to Check |
+|---------|--------------|----------------|
+| Policy won't save | Bucket-level BPA is ON | S3 → Bucket → Block public access |
+| Policy saved but 403 | Account-level BPA is ON | S3 → Account Block Public Access settings |
+| Authenticated works, public fails | Missing `Principal: "*"` in bucket policy | Bucket policy statement |
+| 403 on missing object | Caller not allowed to know existence | Expected behavior with BPA/no permissions |
+| Policy looks correct but 403 | Explicit deny in bucket policy or identity policy | Search for `"Effect": "Deny"` |
+
+---
+
+### Key Takeaways
+
+**S3 public access is multi-layered:**
+1. Account-level BPA (highest priority, applies to all buckets)
+2. Bucket-level BPA (bucket-specific)
+3. Bucket policy (explicit allow/deny)
+4. Object Ownership mode (ACLs vs policies)
+
+**BPA is often the hidden blocker:**
+- Even when bucket policy allows public access
+- Always check both account-level and bucket-level BPA
+- Account-level BPA overrides bucket-level settings
+
+**403 vs 404 interpretation:**
+- 403 can mean "access denied" OR "object doesn't exist but you're not allowed to know"
+- 404 only appears when the caller has permission to know about object existence
+- Don't assume 403 always means the object exists
+
+**Debugging priority:**
+1. Identify principal, action, and exact resource ARN
+2. Check account-level BPA
+3. Check bucket-level BPA
+4. Review bucket policy for explicit allow/deny
+5. Verify Object Ownership mode (ACLs vs policies)
+6. Confirm exact action matches what's needed (`GetObject` vs `ListBucket`)
+
+---
