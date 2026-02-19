@@ -630,3 +630,132 @@ Networking protocols define many aspects of communication over the local network
 - Each layer has specific functions and responsibilities
 
 ---
+
+---
+
+## Feb 19, 2026
+
+## Module 6: Network Media
+
+### Module objective
+Describe common network media types and their characteristics.
+
+---
+
+### What is Network Media?
+
+**Core concept:**
+- Media provides the channel over which messages travel from source to destination
+- Data is transmitted across a network on physical or wireless media
+
+**Three primary media types in modern networks:**
+1. Metal wires within cables (electrical impulses)
+2. Glass or plastic fibers within cables (light pulses)
+3. Wireless transmission (electromagnetic waves)
+
+---
+
+### Criteria for Choosing Network Media
+
+**Four main selection factors:**
+
+| Factor | Question to Ask |
+|--------|----------------|
+| **Distance** | What is the maximum distance the media can successfully carry a signal? |
+| **Environment** | What is the environment in which the media will be installed? |
+| **Speed/Capacity** | What is the amount of data and at what speed must it be transmitted? |
+| **Cost** | What is the cost of the media and installation? |
+
+---
+
+### Three Common Network Cables
+
+#### Twisted-Pair Cable
+
+**Characteristics:**
+- Most commonly encountered network cabling type
+- Foundation of Ethernet technology
+- Wires grouped in pairs and twisted together to reduce interference
+
+**Wire identification:**
+- Pairs are color-coded
+- Each pair: one solid color wire + one striped wire 
+
+**Common uses:**
+- Ethernet connections in LANs
+- Connecting devices to switches and routers
+- Most local network deployments
+
+---
+
+#### Coaxial Cable
+
+**Characteristics:**
+- One of the earliest types of network cabling
+- Single rigid copper core conducts the signal
+- Layers: copper core → insulation → braided metal shielding → protective jacket
+
+**Properties:**
+- High-frequency transmission line
+- Carries high-frequency or broadband signals
+
+**Common uses:**
+- Cable TV distribution
+- Satellite communication systems
+- Connecting satellite components
+
+---
+
+#### Fiber-Optic Cable
+
+**Characteristics:**
+- Glass or plastic fibers
+- Diameter approximately the same as a human hair
+- Uses light instead of electricity to carry data
+
+**Key advantages:**
+- Very high bandwidth (carries large amounts of data)
+- High speeds over long distances
+- Immune to electrical interference (uses light, not electricity)
+
+**Common uses:**
+- Backbone networks
+- Large enterprise environments
+- Large data centers
+- Telephone company infrastructure
+- Medical imaging and treatment
+- Mechanical engineering inspection
+
+---
+
+### Media Comparison Summary
+
+| Media Type | Signal Method | Interference Susceptibility | Distance | Bandwidth | Common Use |
+|-----------|--------------|---------------------------|----------|-----------|------------|
+| **Twisted-Pair** | Electrical impulses | Moderate (reduced by twisting) | Short to medium | Good | LANs, Ethernet |
+| **Coaxial** | Electrical impulses | Low (shielded) | Medium | High | Cable TV, satellite |
+| **Fiber-Optic** | Light pulses | None (uses light) | Very long | Very high | Backbones, data centers |
+| **Wireless** | Electromagnetic waves | Moderate (interference possible) | Varies | Varies | Wi-Fi, cellular |
+
+---
+
+### Key Takeaways
+
+**Media selection is context-dependent:**
+- No single "best" media for all situations
+- Choice depends on distance, environment, speed requirements, and budget
+
+**Twisted-pair dominates LANs:**
+- Ethernet uses twisted-pair extensively
+- Most common cable type encountered in local networks
+
+**Fiber for high-performance:**
+- Best for long distances and high bandwidth
+- Immune to electrical interference
+- Used in enterprise backbones and data centers
+
+**Coaxial for specialized use:**
+- Cable TV and satellite infrastructure
+- High-frequency signal transmission
+
+---
