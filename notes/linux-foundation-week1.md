@@ -2663,3 +2663,633 @@ khelpcenter
   - Package documentation in `/usr/share/doc`
 
 ---
+
+## Feb 20, 2026
+
+## Chapter 10: Processes
+
+### Learning objectives
+
+By the end of this chapter, I should be able to:
+- Describe what a process is and distinguish between types of processes
+- Enumerate process attributes
+- Manage processes using ps and top
+- Understand the use of load averages and other process metrics
+- Manipulate processes by putting them in background and restoring them to foreground
+- Use at, cron, and sleep to schedule processes in the future or pause them
+
+---
+
+### What is a process?
+
+**Definition:**
+- An instance of one or more related tasks (threads) executing on computer
+- NOT the same as a program or command
+- Single command may start several processes simultaneously
+
+**Key characteristics:**
+- Some processes are independent, others are related
+- Failure of one process may or may not affect others
+- Processes use system resources:
+  - Memory
+  - CPU cycles
+  - Peripheral devices (network cards, hard drives, printers, displays)
+
+**Operating system responsibility:**
+- Allocate proper share of resources to each process
+- Ensure overall optimized system utilization
+
+---
+
+### Process types
+
+**Terminal window as example:**
+- Command shell is a process that runs as long as needed
+- Allows users to execute programs and access resources interactively
+- Can also run programs in background (detached from shell)
+
+**Process types by task:**
+
+| Process Type | Description | Examples |
+|--------------|-------------|----------|
+| **Interactive Processes** | Started by user (command line or GUI) | bash, firefox, top, Slack, LibreOffice |
+| **Batch Processes** | Automatic processes scheduled from terminal then disconnected. Queued and work on FIFO basis | updatedb, ldconfig |
+| **Daemons** | Server processes that run continuously. Launched during startup, wait for service requests | httpd, sshd, libvirtd, cupsd |
+| **Threads** | Lightweight processes under main process. Share memory/resources but scheduled individually. Individual thread can end without terminating whole process | dconf-service, gnome-terminal-server |
+| **Kernel Threads** | Kernel tasks users don't start or terminate. Little user control | kthreadd, migration, ksoftirqd |
+
+---
+
+### Process scheduling and states
+
+**Scheduler function:**
+- Critical kernel function
+- Constantly shifts processes on and off CPU
+- Shares time according to:
+  - Relative priority
+  - Time needed
+  - Time already granted
+
+**Process states:**
+
+**Running state:**
+- Currently executing instructions on CPU, OR
+- Waiting to be granted time slice to execute
+- All running processes reside on "run queue"
+- Multi-CPU systems: separate run queue per CPU/core
+- Note: "Running" can be misleading - process may be swapped out waiting its turn
+
+**Sleep state:**
+- Process waiting for something to happen before resuming
+- Example: waiting for user to type something
+- Process sits in "wait queue"
+
+**Zombie state:**
+- Child process completed but parent hasn't asked about its state
+- Not really alive but still shows up in process list
+
+---
+
+### Process and thread IDs
+
+**System tracking:**
+- Operating system keeps track of processes
+- Each assigned unique Process ID (PID) number
+
+**PID characteristics:**
+- Used to track:
+  - Process state
+  - CPU usage
+  - Memory use
+  - Resource locations in memory
+  - Other characteristics
+- Usually assigned in ascending order as processes are born
+- PID 1 = init process (system initialization)
+
+**ID types:**
+
+| ID Type | Description |
+|---------|-------------|
+| **Process ID (PID)** | Unique process ID number |
+| **Parent Process ID (PPID)** | Process that started this process. If parent dies, PPID refers to adoptive parent (kthreadd on modern kernels, PPID=2) |
+| **Thread ID (TID)** | Thread ID number. Same as PID for single-threaded processes. Multi-threaded: each thread shares same PID but has unique TID |
+
+---
+
+### Terminating a process
+
+**When needed:**
+- Application stops working properly
+- Need to eliminate it
+
+**Kill command:**
+```bash
+kill -SIGKILL <pid>
+```
+OR
+```bash
+kill -9 <pid>
+```
+
+**Important restrictions:**
+- Can only kill your own processes
+- Other users' processes are off-limits (unless you are root)
+- Name "kill" is historical/misleading - can send any signal, not just termination
+
+---
+
+### User and group IDs
+
+**Multi-user access:**
+- Many users can access system simultaneously
+- Each user can run multiple processes
+
+**User identification:**
+- **Real User ID (RUID):** Identifies user who starts the process
+- **Effective UID (EUID):** Determines access rights for users
+- EUID may or may not be same as RUID
+
+**Group identification:**
+- Users organized into enumerated groups
+- **Real Group ID (RGID):** Identifies the group
+- **Effective Group ID (EGID):** Determines group access rights
+- Each user can be member of one or more groups
+
+**Common usage:**
+- Usually just refer to User ID (UID) and Group ID (GID)
+
+---
+
+### Process priorities
+
+**Why priorities matter:**
+- Many processes running simultaneously
+- CPU can only accommodate one task at a time
+- Some processes more important than others
+- Higher priority processes get preferential CPU access
+
+**Nice values:**
+- Priority set by specifying "nice value" or "niceness"
+- Lower nice value = higher priority
+- Low values for important processes
+- High values for processes that can wait longer
+- High nice value allows other processes to execute first
+
+**Nice value range:**
+- `-20` = highest priority
+- `+19` = lowest priority
+- Convention: nicer the process, lower the priority (dates back to earliest UNIX)
+
+**Real-time priority:**
+- Can assign to time-sensitive tasks
+- Examples: controlling machines, collecting incoming data
+- Very high priority
+- NOT same as "hard real-time" (different concept about completion time windows)
+
+---
+
+### Load averages
+
+**What load average measures:**
+- Average of load number for given period
+- Takes into account processes that are:
+  - Actively running on CPU
+  - Runnable but waiting on run queue for CPU
+  - Sleeping (waiting for resource, typically I/O)
+
+**Linux-specific:**
+- Differs from other UNIX-like systems
+- Includes sleeping processes
+- Only includes "uninterruptible sleepers" (cannot be awakened easily)
+
+**View load average:**
+```bash
+w
+top
+uptime
+```
+
+---
+
+### Interpreting load averages
+
+**Three numbers displayed:**
+- Example: 0.45, 0.17, 0.12
+
+**For single-CPU system:**
+- **0.45** (first number): Last minute, system 45% utilized on average
+- **0.17** (second number): Last 5 minutes, 17% utilization
+- **0.12** (third number): Last 15 minutes, 12% utilization
+
+**Understanding 1.00:**
+- For single-CPU: 1.00 = 100% utilized
+- Value over 1.00 = over-utilized (more processes needing CPU than available)
+
+**Multi-CPU systems:**
+- Divide load average by number of CPUs
+- Quad-CPU system: 1 minute load of 4.00 = 100% (4.00/4) utilization
+
+**What to watch for:**
+- Short-term increases usually not a problem
+- High peak likely burst of activity
+- High peak in 5 and 15 minute averages may be cause for concern
+
+---
+
+### Background and foreground processes
+
+**Job definition:**
+- Command launched from terminal window
+
+**Foreground jobs:**
+- Run directly from shell
+- When one foreground job running, others wait for shell access
+- Fine when jobs complete quickly
+- Problematic for long-running jobs (hours)
+
+**Background jobs:**
+- Run in background
+- Free shell for other tasks
+- Executed at lower priority
+- Allows smooth execution of interactive tasks
+- Can type other commands while background job runs
+
+**Running jobs:**
+- Default: all jobs execute in foreground
+- Run in background: suffix `&` to command
+```bash
+  updatedb &
+```
+
+**Control keys:**
+- `CTRL-Z` - Suspend foreground job (put in background)
+- `CTRL-C` - Terminate job
+- `bg` command - Run suspended process in background
+- `fg` command - Run background process in foreground
+
+---
+
+### Managing jobs
+
+**jobs utility:**
+```bash
+jobs
+```
+- Displays all jobs running in background
+- Shows: job ID, state, command name
+
+**jobs with PID:**
+```bash
+jobs -l
+```
+- Same information as `jobs`
+- Adds PID of background jobs
+
+**Important note:**
+- Background jobs connected to terminal window
+- If you log off, jobs started from that window won't show
+
+---
+
+### The ps command (System V style)
+
+**What ps provides:**
+- Information about currently running processes
+- Keyed by PID
+
+**Alternative monitoring:**
+- `top` - periodic updates
+- Other variants: `htop`, `atop`, `btop`
+- Graphical: `gnome-system-monitor`, `ksysguard`
+
+**Common ps options:**
+
+| Command | Purpose |
+|---------|---------|
+| `ps` | All processes under current shell |
+| `ps -u <username>` | Processes for specified username |
+| `ps -ef` | All processes in system (full detail) |
+| `ps -eLf` | One line per thread (process can contain multiple threads) |
+
+---
+
+### The ps command (BSD style)
+
+**BSD option style:**
+- Options specified without preceding dashes
+- Stems from BSD variety of UNIX
+
+**Common BSD commands:**
+
+| Command | Purpose |
+|---------|---------|
+| `ps aux` | All processes of all users |
+| `ps axo` | Specify which attributes to view |
+
+---
+
+### The process tree
+
+**pstree command:**
+```bash
+pstree
+```
+
+**What it shows:**
+- Processes in tree diagram
+- Relationship between process and parent
+- Other processes it created
+- Repeated entries not displayed
+- Threads displayed in curly braces
+
+---
+
+### top command
+
+**What it provides:**
+- Constant real-time updates (every 2 seconds by default)
+- Exit by typing `q`
+
+**Advantages over static ps:**
+- Monitors system performance live over time
+- Better than running ps at regular intervals
+
+**Key features:**
+- Highlights processes consuming most CPU cycles
+- Highlights memory usage
+- Use appropriate commands from within top
+
+---
+
+### First line of top output
+
+**Information displayed:**
+- How long system has been up
+- How many users logged on
+- Load average
+
+**Load average interpretation:**
+- Determines how busy system is
+- 1.00 per CPU = fully subscribed but not overloaded
+- Above 1.00 = processes competing for CPU time
+- Very high = possible problem (runaway process)
+
+---
+
+### Second line of top output
+
+**Process counts:**
+- Total number of processes
+- Number of running processes
+- Sleeping processes
+- Stopped processes
+- Zombie processes
+
+**What to check:**
+- Compare running processes with load average
+- Helps determine if system reached capacity
+- Check if particular user running too many processes
+- Examine stopped processes for correct operation
+
+---
+
+### Third line of top output
+
+**CPU time division:**
+- Shows how CPU time divided between users (us) and kernel (sy)
+- Displays percentage for each
+
+**Other CPU metrics:**
+- **ni** - User jobs at lower priority (niceness)
+- **id** - Idle mode (should be low if load average high)
+- **wa** - Jobs waiting for I/O
+- **hi** - Hardware interrupts
+- **si** - Software interrupts
+- **st** - Steal time (used with virtual machines)
+
+---
+
+### Fourth and fifth lines of top output
+
+**Memory usage categories:**
+
+**Line 4: Physical memory (RAM)**
+- Total memory
+- Used memory
+- Free space
+
+**Line 5: Swap space**
+- Total swap
+- Used swap
+- Free swap
+
+**Important monitoring:**
+- Critical to monitor memory usage for good performance
+- Physical memory exhausted → system uses swap space
+- Swap = temporary storage on hard drive (extended memory pool)
+- Disk access much slower than memory access
+- Negatively affects system performance
+
+**Solutions for frequent swapping:**
+- Add more swap space
+- Consider adding more physical memory
+
+---
+
+### Process list in top output
+
+**Information per process (by default, ordered by highest CPU usage):**
+- **PID** - Process Identification Number
+- **USER** - Process owner
+- **PR** - Priority
+- **NI** - Nice value
+- **VIRT** - Virtual memory
+- **RES** - Physical memory
+- **SHR** - Shared memory
+- **S** - Status
+- **%CPU** - Percentage of CPU used
+- **%MEM** - Percentage of memory used
+- **TIME+** - Execution time
+- **COMMAND** - Command
+
+---
+
+### Interactive keys with top
+
+**While top is running:**
+- Enter single-letter commands to change behavior
+- Can view top-ranked processes by CPU or memory
+- Can alter priorities of running processes
+- Can stop/kill processes
+
+**Common interactive commands:**
+
+| Command | Function |
+|---------|----------|
+| `h` or `?` | Display available interactive keys |
+| `t` | Display or hide summary information (rows 2 and 3) |
+| `m` | Display or hide memory information (rows 4 and 5) |
+| `l` | Show information for each CPU (not just totals) |
+| `d` | Change display update interval |
+| `A` | Sort process list by top resource consumers |
+| `r` | Renice (change priority of) specific process |
+| `k` | Kill specific process |
+| `f` | Enter top configuration screen |
+| `o` | Interactively select new sort order |
+
+**Note:** Most keys are toggles (hit second time to revert)
+
+**Alternatives to top:**
+- `atop`, `btop`, `htop`
+- Each has its fans
+- Offer prettier displays and additional capabilities
+
+---
+
+### Scheduling future processes with at
+
+**Use case:**
+- Need to perform task on specific future day
+- Won't be at machine that day
+
+**Solution: at utility**
+- Execute any non-interactive command at specified time
+
+**Example usage:**
+```bash
+at 10:00 AM tomorrow
+```
+
+---
+
+### cron
+
+**What it is:**
+- Time-based scheduling utility program
+- Launches routine background jobs at specific times/days
+- Ongoing basis
+
+**Configuration:**
+- Driven by `/etc/crontab` (cron table)
+- Contains shell commands to run at scheduled times
+- System-wide crontab files
+- Individual user-based crontab files
+
+**Crontab structure:**
+- Each line = one job
+- CRON expression + shell command
+
+**Edit crontab:**
+```bash
+crontab -e
+```
+
+**Crontab fields:**
+
+| Field | Description | Values |
+|-------|-------------|--------|
+| MIN | Minutes | 0-59 |
+| HOUR | Hour | 0-23 |
+| DOM | Day of Month | 1-31 |
+| MON | Month | 1-12 |
+| DOW | Day of Week | 0-6 (0=Sunday) |
+| CMD | Command | Any command to execute |
+
+**Examples:**
+
+**Run every minute:**
+```
+* * * * * /usr/local/bin/execute/this/script.sh
+```
+
+**Run at specific time/date:**
+```
+30 08 10 06 * /home/sysadmin/full-backup
+```
+(8:30 a.m. on June 10, any day of week)
+
+---
+
+### anacron
+
+**Why it exists:**
+- cron implicitly assumed machine always running
+- If machine powered off, scheduled jobs wouldn't run
+- Modern Linux distributions moved to anacron
+
+**How it works:**
+- Runs necessary jobs in controlled, staggered manner
+- When system is up and running
+- Still uses cron infrastructure for submitting jobs
+- Defers running until opportune times when system alive
+
+**Configuration:**
+- Key file: `/etc/anacrontab`
+
+**Job scheduling:**
+- Daily, weekly, monthly basis
+- Runs when system actually available
+
+---
+
+### sleep command
+
+**Use cases:**
+- Command or job must be delayed or suspended
+- Example: application needs to save report but backup system busy
+- System process runs periodically, then lurks until needed again
+
+**What it does:**
+- Suspends execution for at least specified period
+- After time passes (or interrupting signal received), execution resumes
+
+**Syntax:**
+```bash
+sleep NUMBER[SUFFIX]
+```
+
+**Suffixes:**
+- `s` - seconds (default)
+- `m` - minutes
+- `h` - hours
+- `d` - days
+
+**Difference from at:**
+- `sleep` - delays execution for specific period
+- `at` - starts execution at specific designated later time
+
+---
+
+### Chapter 10 summary
+
+**Key concepts covered:**
+
+- **Processes:**
+  - Used to perform various tasks on system
+  - Can be single-threaded or multi-threaded
+  - Different types: interactive and non-interactive
+
+- **Process identification:**
+  - Every process has unique identifier (PID)
+  - Enables OS to keep track
+
+- **Process priority:**
+  - Nice value (niceness) sets priority
+
+- **Process monitoring:**
+  - `ps` provides info about currently running processes
+  - `top` gives constant real-time updates:
+    - Overall system performance
+    - Information about running processes
+
+- **Load average:**
+  - Indicates amount of utilization at particular times
+
+- **Job processing:**
+  - Linux supports background and foreground processing
+
+- **Scheduling:**
+  - `at` executes non-interactive commands at specified time
+  - `cron` schedules tasks at regular intervals
+
+---
