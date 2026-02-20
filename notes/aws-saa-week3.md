@@ -653,3 +653,207 @@ curl -I <object-url-with-wrong-key>
 6. Confirm exact action matches what's needed (`GetObject` vs `ListBucket`)
 
 ---
+
+## Feb 20, 2026
+
+### CloudWatch Monitoring Basics
+
+**Lab setup:**
+- Launched EC2 instance: `cw-lab-bastion-0220` (`i-0286f7b6fcfda6866`)
+- Region: us-east-1c
+- Status: Running, status checks passing
+
+---
+
+### Default EC2 Metrics in CloudWatch
+
+**EC2 Console → Instance → Monitoring tab:**
+
+**Default metrics available (no CloudWatch agent required):**
+- **CPUUtilization:** Percentage of allocated CPU in use
+- **NetworkIn/NetworkOut:** Network traffic volume
+- **DiskReadOps/DiskWriteOps:** Disk I/O operations
+- **StatusCheckFailed:** Combined system and instance status check failures
+- **CPUCreditUsage/CPUCreditBalance:** T-series instance credit metrics (burstable performance)
+
+**Key characteristics:**
+- Metrics are **region-scoped** (check console region if metrics missing)
+- May show "No data" initially (wait a few minutes for first datapoints)
+- Default monitoring: 5-minute intervals (detailed monitoring: 1-minute intervals)
+
+---
+
+### CloudWatch Core Concepts
+
+**Three main components:**
+
+| Component | Description | Example |
+|-----------|-------------|---------|
+| **Metrics** | Numeric time-series data | CPUUtilization: 45.2% at 10:15 AM |
+| **Logs** | Text-based event records | Application logs, system logs, VPC flow logs |
+| **Alarms** | Evaluate metric thresholds and trigger actions | Alert when CPU > 70% for 5 minutes |
+
+**Relationship:**
+- Metrics provide data points over time
+- Alarms monitor metrics and change state based on thresholds
+- Logs capture detailed event information (requires CloudWatch agent for custom logs)
+
+---
+
+### CloudWatch Alarms Created
+
+**Alarm 1: CPU High**
+- Name: `cw-lab-cpu-high`
+- Metric: `CPUUtilization`
+- Threshold: `> 70%`
+- Evaluation: Single datapoint
+- Action: None (monitoring only)
+
+**Alarm 2: Status Check Failed**
+- Name: `cw-lab-statuscheck-failed`
+- Metric: `StatusCheckFailed`
+- Threshold: `>= 1`
+- Purpose: Detect instance or system impairment
+
+---
+
+### Alarm States and Missing Data Treatment
+
+**Three alarm states:**
+- **OK:** Metric within threshold
+- **ALARM:** Metric breached threshold
+- **INSUFFICIENT_DATA:** Not enough data to evaluate
+
+**Missing data treatment affects state:**
+- Different alarms can show different states (OK vs INSUFFICIENT_DATA) even when the instance appears healthy
+- Depends on how the alarm is configured to handle missing datapoints
+- Options: Treat as breaching, not breaching, ignore, or maintain last state
+
+**Example:**
+- CPU alarm may be OK (data available, below threshold)
+- Status check alarm may be INSUFFICIENT_DATA (waiting for enough datapoints)
+
+---
+
+### Support Mapping: "High CPU Usage"
+
+**Troubleshooting flow:**
+
+**Step 1: Verify high CPU in CloudWatch**
+- EC2 Console → Instance → Monitoring tab → CPUUtilization graph
+- OR CloudWatch Console → Metrics → EC2 → Per-Instance Metrics
+- Confirm metric shows sustained high values
+
+**Step 2: Connect to instance and identify process**
+```bash
+# Real-time process monitoring
+top
+
+# Sort by CPU usage (press Shift+P in top)
+# Identify top CPU-consuming processes
+
+# Detailed process list
+ps aux --sort=-%cpu | head -20
+```
+
+**Step 3: Determine root cause**
+- Legitimate workload spike (expected)
+- Runaway process (memory leak, infinite loop)
+- Under-provisioned instance (too small for workload)
+- Attack or malicious activity
+
+**Step 4: Resolution options**
+
+| Scenario | Action |
+|----------|--------|
+| Runaway process | Kill/restart the process, investigate code |
+| Expected spike | No action needed, confirm normal behavior |
+| Consistent high usage | Resize to larger instance type |
+| Predictable patterns | Implement Auto Scaling |
+| Malicious activity | Investigate security, isolate instance |
+
+---
+
+### Support Mapping: "Status Check Failed"
+
+**Two types of status checks:**
+
+**System Status Check (AWS infrastructure):**
+- Checks underlying hardware/network
+- Failures indicate AWS infrastructure issues
+- **Resolution:** Stop and start instance (moves to new host)
+
+**Instance Status Check (instance-level):**
+- Checks OS and networking configuration
+- Failures indicate guest OS or configuration issues
+- **Resolution:** Reboot instance, or investigate and fix root cause
+
+**Troubleshooting flow:**
+
+**Step 1: Identify which check failed**
+- EC2 Console → Instance → Status checks tab
+- Separate indicators for System and Instance checks
+
+**Step 2: Choose appropriate action**
+
+| Check Failed | Common Causes | Resolution |
+|--------------|---------------|------------|
+| **System** | Hardware failure, network issue, AWS infrastructure problem | Stop → Start instance (migrates to new host) |
+| **Instance** | Failed system status check, kernel panic, misconfigured network, full disk | Reboot instance, connect via console, investigate logs |
+| **Both** | Start with system check resolution | Stop → Start first, then diagnose instance issues |
+
+**Step 3: Verify resolution**
+- Wait for status checks to complete (may take a few minutes)
+- Confirm both checks show "2/2 checks passed"
+- Monitor CloudWatch alarm returns to OK state
+
+**Step 4: Consider automation (for production)**
+- CloudWatch alarm → SNS notification
+- Auto-recovery action (automatically recovers instance on system check failure)
+- Lambda function for custom remediation
+
+---
+
+### CloudWatch Metrics Best Practices
+
+**Region awareness:**
+- CloudWatch is region-scoped
+- If metrics are missing, verify console is set to correct region
+- Metrics from us-east-1 won't appear when viewing us-west-2
+
+**Data freshness:**
+- New instances may show "No data" for first few minutes
+- Allow 5-10 minutes for initial datapoints
+- Refresh the console to see updated data
+
+**Alarm design:**
+- Single datapoint alarms are sensitive (may trigger on brief spikes)
+- Multi-datapoint evaluation reduces false positives (e.g., 3 out of 5 datapoints)
+- Choose threshold and evaluation period based on workload patterns
+
+---
+
+### Key Takeaways
+
+**CloudWatch components:**
+- **Metrics:** Numeric time-series data (CPU, network, disk, status checks)
+- **Logs:** Text event records (requires agent for custom logs)
+- **Alarms:** Monitor metrics and trigger state changes/actions
+
+**Debugging high CPU:**
+1. Verify in CloudWatch metrics
+2. SSH to instance and use `top`/`ps` to identify process
+3. Determine if legitimate, runaway, or under-provisioned
+4. Take appropriate action (kill process, resize, autoscale)
+
+**Status check failures:**
+- System check = AWS infrastructure issue → Stop/Start instance
+- Instance check = Guest OS issue → Reboot or investigate
+- Both failing → Start with system check resolution
+
+**Cost management:**
+- Stop or terminate instances when not actively using them
+- Running instances accrue hourly charges even when idle
+- T-series instances: monitor CPU credits to avoid throttling
+
+---
