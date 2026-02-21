@@ -759,3 +759,211 @@ Describe common network media types and their characteristics.
 - High-frequency signal transmission
 
 ---
+
+## Feb 21, 2026
+
+## Module 7: The Access Layer
+
+### Module objective
+Explain how communication occurs on Ethernet networks.
+
+**Topics covered:**
+- Encapsulation and the Ethernet Frame
+- The Access Layer
+
+---
+
+### Encapsulation basics
+
+**Human communication analogy:**
+- Writing a letter: Use accepted format to ensure delivery and understanding
+- Letter inside envelope = encapsulation
+- Recipient removes letter from envelope = de-encapsulation
+
+**Network communication:**
+- Computer messages follow specific format rules
+- Messages must be correctly formatted to be delivered and processed
+- Incorrectly formatted messages are not successfully delivered
+
+---
+
+### What is a frame?
+
+**Definition:**
+- Each computer message is encapsulated in a specific format called a **frame**
+- Frame acts like an envelope
+
+**Frame contents:**
+- Address of intended destination
+- Address of source host
+- Format and contents determined by:
+  - Type of message being sent
+  - Channel over which it is communicated
+
+---
+
+### Encapsulation process
+
+**Placing one message format inside another:**
+- Letter analogy: Letter goes inside envelope
+- Network: Data encapsulated in frame for network transmission
+
+**De-encapsulation:**
+- Recipient reverses the process
+- Removes the original message from the frame/envelope
+
+**Example with IP:**
+- Internet Protocol (IP) functions like the envelope
+- IPv6 packet fields identify:
+  - Source of packet
+  - Destination of packet
+- IP responsible for sending message from source to destination over one or more networks
+
+---
+
+### Ethernet frame format
+
+**What Ethernet protocol standards define:**
+- Frame format
+- Frame size
+- Timing
+- Encoding
+
+**Ethernet frame fields:**
+- **Preamble:** Sequencing and timing
+- **Start of frame delimiter**
+- **Destination MAC address:** Where frame is going
+- **Source MAC address:** Where frame came from
+- **Length and type of frame**
+- **Frame check sequence:** Detects transmission errors
+
+---
+
+### MAC addresses
+
+**What they are:**
+- Media Access Control (MAC) address
+- Unique address permanently embedded on Ethernet NIC
+- Every Ethernet NIC has unique MAC address
+
+**Usage:**
+- Source and destination MAC addresses are fields in Ethernet frame
+- Ethernet is technology commonly used in local area networks
+- Devices access Ethernet LAN using Ethernet Network Interface Card (NIC)
+
+---
+
+### The access layer
+
+**What it is:**
+- Part of network where people gain access to:
+  - Other hosts
+  - Shared files
+  - Printers
+- Provides first line of networking devices connecting hosts to wired Ethernet network
+
+**Connection method:**
+- Each host can connect directly to access layer networking device
+- Connection uses Ethernet cable
+
+---
+
+### Ethernet hubs (obsolete)
+
+**Characteristics:**
+- Contain multiple ports to connect hosts to network
+- Only one message can be sent through hub at a time
+
+**Problem: Collisions**
+- Two or more messages sent simultaneously cause collision
+- Excessive retransmissions clog network
+- Slow down network traffic
+
+**Current status:**
+- Now considered obsolete
+- Replaced by Ethernet switches
+
+---
+
+### Ethernet switches
+
+**What they are:**
+- Device used at Layer 2 (Data Link layer)
+- Modern replacement for hubs
+
+**How they work:**
+1. Host sends message to another host on same switched network
+2. Switch accepts and decodes frames
+3. Switch reads MAC address portion of message
+4. Switch checks MAC address table
+5. If destination found, switch builds temporary circuit between source and destination ports
+
+---
+
+### MAC address table
+
+**What it contains:**
+- List of all active ports
+- Host MAC addresses attached to each port
+
+**How it's built:**
+- Switch examines source MAC address of each frame
+- When new host sends message or responds to flooded message:
+  - Switch immediately learns its MAC address
+  - Switch records port to which it is connected
+- Table is dynamically updated each time new source MAC address is read
+
+---
+
+### Switch advantages over hubs
+
+**Collision elimination:**
+- Switches allow sending and receiving frames simultaneously
+- Can use same Ethernet cable for both directions at once
+- Improves network performance by eliminating collisions
+
+**Selective forwarding:**
+- Switch only forwards frame to destination port (if known)
+- Not broadcast to all ports like hub
+- Reduces unnecessary traffic
+
+---
+
+### Module 7 summary
+
+**Key concepts covered:**
+
+**Encapsulation:**
+- Process of placing one message format inside another
+- De-encapsulation reverses the process
+- Computer messages must follow specific format rules
+- Frame = envelope for network message
+
+**Ethernet frame format:**
+- Standards define: frame format, size, timing, encoding
+- Key fields: preamble, start delimiter, source/destination MAC addresses, length/type, frame check sequence
+
+**MAC addresses:**
+- Unique identifier permanently embedded on Ethernet NIC
+- Used for source and destination addressing in frames
+
+**Access layer function:**
+- Where people gain access to network resources
+- Provides first line of networking devices
+- Connects hosts to wired Ethernet network
+
+**Ethernet hubs (obsolete):**
+- Multiple ports for host connections
+- Only one message at a time
+- Collisions slow network
+- Replaced by switches
+
+**Ethernet switches:**
+- Layer 2 devices
+- Use MAC address table to forward frames
+- Build temporary circuits between source and destination
+- Allow simultaneous send/receive on same cable
+- Eliminate collisions
+- Dynamically learn MAC addresses from traffic
+
+---
