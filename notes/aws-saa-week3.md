@@ -150,9 +150,9 @@
 ### VPC Routing + IGW vs NAT
 
 **Route table validation:**
-- Confirmed subnet is **public** because route table contains `0.0.0.0/0 → igw-0d2b4afba531a9b3b`
+- Confirmed subnet is **public** because route table contains `0.0.0.0/0 → igw-<redacted>`
 - IGW is attached to the VPC
-- Instance has public IPv4 (`13.52.179.133`), no Elastic IP
+- Instance has public IPv4 (`<EC2_PUBLIC_IP>`), no Elastic IP
 - Instance can use IGW for inbound/outbound as long as SG and NACL allow it
 
 **Two key routes in route table:**
@@ -223,13 +223,13 @@ openssl s_client -connect example.com:443  # TLS handshake details
 
 **Step 1: Test network path**
 ```bash
-nc -vz -w 3 13.52.179.133 22
+nc -vz -w 3 <EC2_PUBLIC_IP> 22
 ```
 **Result:** Succeeded → network path to port 22 is open (SG/NACL/routing all clear)
 
 **Step 2: Test SSH connection**
 ```bash
-ssh -v <user>@13.52.179.133
+ssh -v <user>@<EC2_PUBLIC_IP>
 ```
 **Result:** `Connection established` + `Authenticated using "publickey"` → inbound SSH working end-to-end
 
@@ -855,5 +855,299 @@ ps aux --sort=-%cpu | head -20
 - Stop or terminate instances when not actively using them
 - Running instances accrue hourly charges even when idle
 - T-series instances: monitor CPU credits to avoid throttling
+
+---
+
+## Feb 21, 2026
+
+### EC2 Reachability Analysis + Security Group vs NACL
+
+**Lab environment analyzed:**
+- VPC: `vpc-<redacted>`
+- Subnet: `subnet-<redacted>`
+- Instance: `lab-unreachable`
+- Public IPv4: `<EC2_PUBLIC_IP>`
+- Private IPv4: `<EC2_PRIVATE_IP>`
+- Security Group: `sg-<redacted>`
+
+---
+
+### Subnet Classification Verified
+
+**Route table inspection:**
+- `172.31.0.0/16 → local` (VPC-internal traffic)
+- `0.0.0.0/0 → igw-<redacted>` (Internet Gateway route)
+
+**Classification:** Public subnet (has default route to IGW)
+
+**Key signal:** Instance has public IPv4 address → inbound from internet is possible if security rules allow it
+
+---
+
+### Security Group Configuration Review
+
+**Inbound rules:**
+- SSH (TCP 22): Source `<MY_PUBLIC_IP>/32`
+- Scope: Very tight (single IP)
+- Risk: Rule breaks if my public IP changes (dynamic ISP assignment)
+
+**Outbound rules:**
+- All traffic: Destination `0.0.0.0/0`
+- Result: Outbound not blocked at security group layer
+
+---
+
+### Security Groups: Stateful Behavior
+
+**Key concept: Statefulness**
+- Allowing inbound SSH (TCP 22) automatically allows return traffic
+- No need to explicitly allow ephemeral ports (1024-65535) in SG rules
+- Connection tracking handles bidirectional flow
+
+**Example flow:**
+1. Inbound SG rule allows TCP 22 from my IP
+2. SSH connection established
+3. Return traffic (SSH server → client) automatically allowed
+4. No explicit outbound rule needed for return traffic
+
+**Contrast with NACLs:** Security groups track connection state, NACLs do not.
+
+---
+
+### Network ACLs: Stateless Behavior
+
+**Key concept: Statelessness**
+- NACLs do NOT track connection state
+- Both directions (inbound + outbound) must be explicitly allowed
+- Even when SG rules look correct, restrictive NACL can block traffic
+
+**SSH example with NACLs:**
+
+| Direction | Required NACL Rule |
+|-----------|-------------------|
+| Inbound | Allow TCP 22 from source IP |
+| Outbound | Allow TCP 1024-65535 to destination IP (ephemeral ports for return traffic) |
+
+**Common mistake:** Allowing inbound SSH in NACL but forgetting outbound ephemeral ports → connection times out despite correct SG rules.
+
+---
+
+### Inbound vs Outbound Troubleshooting Separation
+
+**Critical distinction:**
+- **Inbound reachability:** "Can I connect TO my instance?" (SSH, RDP, HTTP)
+- **Outbound internet access:** "Can my instance connect OUT to the internet?" (apt/yum, curl, API calls)
+
+**Why separate them:**
+- Different network path components involved
+- Different root causes
+- Chasing wrong path wastes time
+
+---
+
+### Support Mapping: "Cannot SSH to Instance" (Inbound Path)
+
+**Step 1: Classify the failure mode from client**
+
+**Test from laptop:**
+```bash
+nc -vz -w 3 <public-ip> 22
+```
+
+**Three outcomes:**
+
+| Outcome | Meaning | Where to Investigate |
+|---------|---------|---------------------|
+| **Timeout** | Network path blocked | SG source IP, NACL, route table, public IP assignment |
+| **Connection refused** | Port not listening or blocked at OS | sshd status, OS firewall (iptables/firewalld) |
+| **Connection succeeds, SSH fails** | Authentication problem | Username, SSH key, key permissions |
+
+---
+
+**Step 2: Troubleshoot based on failure mode**
+
+**If timeout (most common):**
+
+**Check 1: Security Group source IP (common cause)**
+- EC2 Console → Instance → Security tab → Security Group inbound rules
+- Verify SSH rule source matches your current public IP
+- **Fix:** Use console "My IP" helper to update source to current IP
+- **Why it breaks:** ISP assigns dynamic IPs that change periodically
+
+**Check 2: Public IP assignment**
+- Verify instance has public IPv4 or Elastic IP
+- Without public IP, cannot accept inbound from internet (needs bastion or VPN)
+
+**Check 3: Route table**
+- Subnet route table must have `0.0.0.0/0 → IGW`
+- IGW must be attached to VPC
+
+**Check 4: Network ACL**
+- Inbound: Allow TCP 22 from source
+- Outbound: Allow TCP 1024-65535 for return traffic (ephemeral ports)
+- Remember: NACLs are stateless
+
+---
+
+**If connection refused:**
+
+**Check sshd service:**
+```bash
+# From EC2 console → Connect → Session Manager (if available)
+# OR from another instance in same VPC
+
+systemctl status sshd
+ss -tulpn | grep :22
+```
+
+**Check OS firewall:**
+```bash
+# Check iptables (older systems)
+sudo iptables -L -n
+
+# Check firewalld (newer systems)
+sudo firewall-cmd --list-all
+```
+
+---
+
+**If connects but auth fails:**
+
+**Check username:**
+- Amazon Linux 2023: `ec2-user`
+- Ubuntu: `ubuntu`
+- Debian: `admin`
+- Red Hat: `ec2-user`
+
+**Check SSH key:**
+```bash
+# Verify correct key file
+ssh -i /path/to/key.pem <user>@<public-ip>
+
+# Check key permissions (must be 400 or 600)
+ls -l /path/to/key.pem
+chmod 400 /path/to/key.pem  # Fix if needed
+```
+
+---
+
+### Support Mapping: "Instance Cannot Reach Internet" (Outbound Path)
+
+**Step 1: Test from inside the instance**
+```bash
+# Test DNS resolution
+dig example.com +short
+
+# Test HTTP connectivity
+curl -I --connect-timeout 5 --max-time 10 http://example.com
+
+# Check routing table
+ip route
+```
+
+---
+
+**Step 2: Troubleshoot based on test results**
+
+**If `dig` fails (DNS issue):**
+```bash
+# Check DNS resolver configuration
+cat /etc/resolv.conf
+
+# Expected: VPC DNS resolver (usually 169.254.169.254 or VPC CIDR +2)
+```
+
+**Fix:** Verify VPC DNS settings enabled (DNS resolution + DNS hostnames)
+
+---
+
+**If `dig` works but `curl` times out (routing/firewall issue):**
+
+**Check 1: Route table default route**
+- Subnet route table must have `0.0.0.0/0` pointing to:
+  - **IGW** (if instance has public IP)
+  - **NAT Gateway** (if instance is in private subnet)
+
+**Check 2: Security Group egress**
+- Verify outbound rules allow traffic
+- Default: Allow all traffic to `0.0.0.0/0`
+
+**Check 3: Network ACL outbound**
+- Must allow outbound traffic on required ports (80, 443)
+- Must allow inbound ephemeral ports (1024-65535) for return traffic
+- Remember: NACLs are stateless
+
+**Check 4: NAT Gateway (if private subnet):**
+- NAT Gateway must exist in a public subnet
+- NAT Gateway must have Elastic IP
+- NAT Gateway state must be "Available"
+
+---
+
+### Security Group vs NACL Decision Matrix
+
+| Scenario | Security Group | Network ACL |
+|----------|---------------|-------------|
+| **Blocking inbound SSH** | Check inbound rule source IP | Check inbound TCP 22 rule |
+| **Blocking SSH return traffic** | Automatically allowed (stateful) | Must explicitly allow outbound ephemeral ports |
+| **Blocking outbound HTTP** | Check outbound rules | Check outbound TCP 80/443 |
+| **Blocking HTTP response** | Automatically allowed (stateful) | Must explicitly allow inbound ephemeral ports |
+| **Connection times out** | Check both SG and NACL | Check both directions in NACL |
+| **Connection refused** | Not SG/NACL issue | Not SG/NACL issue (OS-level) |
+
+---
+
+### Common Root Cause Patterns
+
+| Symptom | Common Cause | Quick Fix |
+|---------|--------------|-----------|
+| SSH timeout after ISP modem restart | My public IP changed | Update SG source using "My IP" helper |
+| SSH works from home, fails from coffee shop | SG locked to home IP only | Add coffee shop IP to SG or widen source |
+| SSH times out despite correct SG | NACL blocking return traffic | Add NACL outbound rule for ephemeral ports |
+| apt/yum update fails | Private subnet missing NAT | Create NAT Gateway in public subnet |
+| curl times out, dig works | SG blocking outbound or NACL blocking | Check SG egress + NACL bidirectional rules |
+
+---
+
+### Troubleshooting Workflow Summary
+
+**Inbound path (can't connect TO instance):**
+1. Test connection type: timeout vs refused vs auth fail
+2. If timeout → Check SG source IP (most common), then public IP, then route table, then NACL
+3. If refused → Check sshd status and OS firewall
+4. If auth fail → Check username and SSH key
+
+**Outbound path (instance can't connect OUT):**
+1. Test from instance: DNS resolution and HTTP connectivity
+2. Check route table default route (IGW or NAT)
+3. Check SG egress rules
+4. Check NACL bidirectional rules
+5. If private subnet, verify NAT Gateway exists and is available
+
+---
+
+### Key Takeaways
+
+**Stateful vs Stateless:**
+- **Security Groups:** Stateful (return traffic automatic)
+- **Network ACLs:** Stateless (both directions must be explicit)
+
+**Ephemeral ports:**
+- SGs: Not needed (statefulness handles it)
+- NACLs: Must explicitly allow (typically 1024-65535)
+
+**Dynamic IP problem:**
+- ISP public IPs change unpredictably
+- SG rules locked to specific IP will break when IP changes
+- Use "My IP" helper in console or automate with Lambda
+
+**Separation of concerns:**
+- Inbound = Security Group source + NACL inbound + public IP + IGW
+- Outbound = Security Group egress + NACL outbound + route table + NAT (if private)
+- Don't confuse the two paths when troubleshooting
+
+**First check for timeouts:**
+- Security Group source IP mismatch (especially after network changes)
+- This is the most common cause of sudden SSH failures
 
 ---
