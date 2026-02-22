@@ -1151,3 +1151,350 @@ cat /etc/resolv.conf
 - This is the most common cause of sudden SSH failures
 
 ---
+
+## Feb 22, 2026
+
+### CloudTrail Event History + Change Tracking
+
+**Lab activity:**
+- Opened CloudTrail Event history in us-west-1
+- Reviewed management events from recent lab sessions
+- Practiced filtering and investigating specific changes
+
+---
+
+### CloudTrail Core Purpose
+
+**Answers four key questions:**
+1. **Who:** Principal identity (user, role, service)
+2. **What:** API action performed
+3. **When:** Timestamp of the event
+4. **Where:** Source IP address and user agent
+
+**Use cases:**
+- Security incident investigation
+- Compliance auditing
+- Change tracking ("who modified this security group?")
+- Troubleshooting ("what changed right before this broke?")
+
+---
+
+### Event History Filtering
+
+**Filtered by event name to find specific changes:**
+
+**Security Group modifications:**
+- `AuthorizeSecurityGroupIngress` - Added inbound rule
+- `RevokeSecurityGroupIngress` - Removed inbound rule
+
+**S3 policy changes:**
+- `PutBucketPolicy` - Created or updated bucket policy
+- `DeleteBucketPolicy` - Removed bucket policy
+
+**Other useful filters:**
+- Event time range
+- Resource name
+- Resource type
+- Username
+
+---
+
+### Event Analysis Example: AuthorizeSecurityGroupIngress
+
+**High-level event details:**
+- **Event time:** Feb 21, 2026 07:26:55 (UTC-08:00)
+- **Principal:** `stephen-admin` (IAM user)
+- **Resource:** `sg-<redacted>`
+- **Source IP:** `<MY_PUBLIC_IP>`
+- **User agent:** Chrome/144 on macOS
+- **Event source:** `ec2.amazonaws.com`
+
+---
+
+### Event JSON Structure
+
+**Key sections in CloudTrail event JSON:**
+
+**1) Event metadata:**
+```json
+{
+  "eventVersion": "1.08",
+  "eventTime": "2026-02-21T15:26:55Z",
+  "eventName": "AuthorizeSecurityGroupIngress",
+  "eventSource": "ec2.amazonaws.com"
+}
+```
+
+**2) Principal information:**
+```json
+{
+  "userIdentity": {
+    "type": "IAMUser",
+    "principalId": "AIDA...",
+    "arn": "arn:aws:iam::<ACCOUNT_ID>:user/stephen-admin",
+    "accountId": "<ACCOUNT_ID>",
+    "userName": "stephen-admin",
+    "sessionContext": {
+      "sessionIssuer": {},
+      "sessionCredentialFromConsole": true
+    }
+  }
+}
+```
+
+**3) Request parameters (what changed):**
+```json
+{
+  "requestParameters": {
+    "groupId": "sg-<redacted>",
+    "ipPermissions": {
+      "items": [
+        {
+          "ipProtocol": "tcp",
+          "fromPort": 22,
+          "toPort": 22,
+          "ipRanges": {
+            "items": [
+              {
+                "cidrIp": "<MY_PUBLIC_IP>/32"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+**4) Response elements (confirmation):**
+```json
+{
+  "responseElements": {
+    "_return": true,
+    "securityGroupRuleSet": {
+      "items": [
+        {
+          "groupId": "sg-<redacted>",
+          "securityGroupRuleId": "sgr-07d9888369fc59f77",
+          "ipProtocol": "tcp",
+          "fromPort": 22,
+          "toPort": 22,
+          "cidrIpv4": "<MY_PUBLIC_IP>/32"
+        }
+      ]
+    }
+  }
+}
+```
+
+**5) Source information:**
+```json
+{
+  "sourceIPAddress": "<MY_PUBLIC_IP>",
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/144.0.0.0"
+}
+```
+
+---
+
+### Key Fields for Change Investigation
+
+**Proof of what changed:**
+- `requestParameters.ipPermissions` - Shows protocol, ports, CIDR ranges
+- `responseElements.securityGroupRuleId` - Created rule ID (e.g., `sgr-07d9888369fc59f77`)
+
+**Proof of who changed it:**
+- `userIdentity.userName` - IAM user or role name
+- `userIdentity.type` - IAMUser, AssumedRole, AWSService
+- `sessionContext.sessionCredentialFromConsole` - Console vs API/CLI
+
+**Success vs failure indication:**
+- **No `errorCode` or `errorMessage`** - API call succeeded
+- **`_return: true`** - Operation completed successfully
+- **`errorCode` present** - API call failed (e.g., AccessDenied, InvalidParameterValue)
+
+---
+
+### Event History vs CloudTrail Trail
+
+**Event History (built-in, 90 days):**
+- Free, enabled by default
+- Last 90 days of management events
+- Viewable in CloudTrail console
+- Quick investigation of recent changes
+- No storage cost
+
+**CloudTrail Trail (custom, long-term):**
+- Must be created and configured
+- Delivers events to S3 bucket
+- Can send to CloudWatch Logs
+- Supports data events (S3 object-level, Lambda invocations)
+- Retention as long as you keep the S3 objects
+- Costs: S3 storage + data event recording (if enabled)
+
+**When to use each:**
+- Event History: Quick "what happened recently" investigations
+- Trail: Compliance, long-term audit, automated alerting, data events
+
+---
+
+### Support Mapping: "Who Changed the Security Group?"
+
+**Scenario:** SSH suddenly stopped working, investigate recent SG changes.
+
+**Step 1: Open CloudTrail Event history**
+- CloudTrail Console → Event history
+- Set region to match resource region
+
+**Step 2: Filter to SG changes**
+- Attribute filter → Event name
+- Enter: `AuthorizeSecurityGroupIngress` or `RevokeSecurityGroupIngress`
+
+**Step 3: Identify the change**
+- Review event list for timestamp near when issue started
+- Open relevant event
+
+**Step 4: Extract key details**
+- Who: `userIdentity.userName`
+- When: `eventTime`
+- What: `requestParameters.ipPermissions`
+- Resource: `requestParameters.groupId`
+
+**Step 5: Determine action**
+- If unauthorized change → Revert and investigate access
+- If legitimate but incorrect → Fix the rule
+- If automation → Review automation logic
+
+---
+
+### Support Mapping: "Who Changed the S3 Bucket Policy?"
+
+**Scenario:** S3 access suddenly blocked, bucket policy may have changed.
+
+**Step 1: Filter Event history**
+- Event name: `PutBucketPolicy` or `DeleteBucketPolicy`
+- Resource name: Bucket name
+
+**Step 2: Review the change**
+```json
+{
+  "requestParameters": {
+    "bucketName": "bucket-name",
+    "bucketPolicy": {
+      "Statement": [
+        {
+          "Effect": "Deny",
+          "Principal": "*",
+          "Action": "s3:*",
+          "Resource": "arn:aws:s3:::bucket-name/*"
+        }
+      ]
+    }
+  }
+}
+```
+
+**Step 3: Identify impact**
+- Compare before/after policy
+- Determine if change caused AccessDenied
+- Check if explicit Deny was added
+
+**Step 4: Resolve**
+- If policy incorrect → Revert or fix
+- If policy correct → Issue elsewhere in access chain
+
+---
+
+### Support Mapping: "What Changed Before AccessDenied?"
+
+**Scenario:** User reports AccessDenied on S3, no obvious cause.
+
+**Step 1: Identify timeframe**
+- When did AccessDenied start?
+- Look at CloudTrail events 15-30 minutes before
+
+**Step 2: Filter to relevant events**
+- Resource type: S3
+- Resource name: Bucket name
+- Look for: `PutBucketPolicy`, `PutBucketPublicAccessBlock`, `PutBucketAcl`
+
+**Step 3: Check IAM policy changes**
+- Event name: `PutUserPolicy`, `AttachUserPolicy`, `DetachUserPolicy`
+- Event name: `PutRolePolicy`, `AttachRolePolicy`, `DetachRolePolicy`
+- Username: Affected user or their admin
+
+**Step 4: Check for denies**
+- Look for `Effect: Deny` in policy JSON
+- Check for BPA enabled (`PutPublicAccessBlock`)
+- Verify no permission boundary added
+
+---
+
+### Common CloudTrail Investigation Patterns
+
+| Incident Type | Event Names to Filter | Key Fields to Check |
+|--------------|----------------------|---------------------|
+| **SG rule changed** | `AuthorizeSecurityGroupIngress`, `RevokeSecurityGroupIngress` | `ipPermissions`, `groupId` |
+| **S3 policy changed** | `PutBucketPolicy`, `DeleteBucketPolicy` | `bucketPolicy.Statement` |
+| **IAM permissions changed** | `AttachUserPolicy`, `PutUserPolicy`, `CreateAccessKey` | `policyArn`, `userName` |
+| **Instance launched** | `RunInstances` | `instanceType`, `imageId`, `keyName` |
+| **Bucket created/deleted** | `CreateBucket`, `DeleteBucket` | `bucketName` |
+| **Role assumed** | `AssumeRole` | `roleArn`, `sessionName` |
+
+---
+
+### Event JSON Reading Tips
+
+**Quick navigation:**
+1. Start with `eventName` - What happened
+2. Check `errorCode` - Did it succeed?
+3. Read `userIdentity` - Who did it
+4. Examine `requestParameters` - What they requested
+5. Review `responseElements` - What was created/changed
+
+**Console vs API detection:**
+- `sessionCredentialFromConsole: true` → Console action
+- `sessionCredentialFromConsole: false` or absent → API/CLI/SDK
+
+**Service vs user action:**
+- `userIdentity.type: AWSService` → Automated AWS action
+- `userIdentity.invokedBy: <service>` → Which service called it
+- `userIdentity.type: IAMUser` → User action
+- `userIdentity.type: AssumedRole` → Role session (could be user or service)
+
+---
+
+### Key Takeaways
+
+**CloudTrail Event History purpose:**
+- Answers "who, what, when, where" for AWS API calls
+- 90-day retention, free, always enabled
+- Essential for security investigations and troubleshooting
+
+**Critical fields for change investigation:**
+- `userIdentity` - Who made the change
+- `eventName` - What API action
+- `requestParameters` - What changed
+- `errorCode` - Success or failure
+- `eventTime` - When it happened
+
+**Common investigation scenarios:**
+- "Who opened this security group rule?"
+- "Who changed this S3 bucket policy?"
+- "What changed right before AccessDenied started?"
+- "Was this a console action or automation?"
+
+**Event History vs Trail:**
+- Event History: Quick recent investigation (90 days, free)
+- Trail: Long-term compliance, automated alerting, data events
+
+**Investigation workflow:**
+1. Identify timeframe of issue
+2. Filter Event history by event name or resource
+3. Open relevant events
+4. Extract who, what, when from JSON
+5. Determine if change caused issue
+6. Revert or fix as needed
+
+---
