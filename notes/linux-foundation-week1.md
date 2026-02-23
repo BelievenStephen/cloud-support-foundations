@@ -3293,3 +3293,907 @@ sleep NUMBER[SUFFIX]
   - `cron` schedules tasks at regular intervals
 
 ---
+
+## Feb 23, 2026
+
+## Chapter 11: File operations
+
+### Learning objectives
+
+By the end of this chapter, I should be able to:
+- Explore the filesystem and its hierarchy
+- Explain the filesystem layout and the purpose of important directories
+- List common filesystem types used in Linux
+- Understand disk partitions and mounting and checking filesystems
+- Use NFS
+- Compare files and identify different file types
+- Back up and compress data
+
+---
+
+### Introduction to filesystems
+
+**"Everything is a file" philosophy:**
+- Common adage in Linux and UNIX-like systems
+- Interaction with devices (sound cards, printers) uses same I/O operations as regular files
+- Simplifies system interactions
+- One reason text editors are so important
+
+**Filesystem structure:**
+- Structured like an inverted tree
+- Starts at root directory (`/`)
+- Also called trunk
+- Root directory ≠ root user
+
+**Path structure:**
+- Elements separated by forward slashes (`/`)
+- Example: `/usr/bin/emacs`
+- Last element is actual file name
+
+---
+
+### Filesystem varieties
+
+**Native Linux filesystems:**
+- ext3
+- ext4
+- squashfs
+- btrfs
+
+**Filesystems from other operating systems:**
+- Windows: ntfs, vfat, exfat
+- SGI: xfs
+- IBM: jfs
+- MacOS: hfs, hfs+
+- Many older legacy filesystems (FAT)
+
+**Multiple filesystem types:**
+- Often used on same machine
+- Based on considerations:
+  - File size
+  - Modification frequency
+  - Hardware type
+  - Required access speed
+
+**Advanced journaling filesystems:**
+- ext4, xfs, btrfs, jfs
+- State-of-the-art features
+- High performance
+- Not easy to corrupt accidentally
+
+**Network/distributed filesystems:**
+- All or part of filesystem on external machines
+- NFS (Network File System)
+- Ceph, Lustre, OpenAFS
+
+---
+
+### Linux partitions
+
+**Basic concept:**
+- Most filesystems occupy a disk partition
+- Partitions organize disk contents by kind and use
+
+**Common partition scheme:**
+- System programs on separate partition (root `/`)
+- User files on different partition (`/home`)
+- Temporary files may have dedicated partitions
+
+**Advantages of partition isolation:**
+- When partition fills up, system may still operate normally
+- Data corruption/breach can be confined to smaller area
+- Problems isolated by type and variability
+
+---
+
+### Mount points
+
+**Definition:**
+- Directory where filesystem is grafted onto filesystem tree
+- May or may not be empty
+- May need to create directory if doesn't exist
+
+**Important warning:**
+⚠️ Mounting filesystem on non-empty directory covers up former contents
+- Contents not accessible until filesystem unmounted
+- Mount points usually empty directories
+
+---
+
+### Mounting and unmounting
+
+**Mount command:**
+```bash
+sudo mount /dev/sda5 /home
+```
+- Attaches filesystem to filesystem tree
+- Basic arguments: device node and mount point
+- Can also specify by disk label or UUID
+
+**Unmount command:**
+```bash
+sudo umount /home
+```
+- Note: Command is `umount`, not `unmount`
+
+**Permissions:**
+- Only root user can run these commands
+- Unless system configured otherwise
+
+**Automatic mounting:**
+- Edit `/etc/fstab` for mount at boot
+- File contains configuration of pre-configured filesystems
+- `man fstab` for details
+
+**View mounted filesystems:**
+```bash
+mount           # Show all currently mounted
+df -Th          # Display with type and usage statistics
+```
+
+**Note on tmpfs:**
+- Not real physical filesystems
+- Parts of system memory represented as filesystems
+- Take advantage of certain programming features
+
+---
+
+### NFS and network filesystems
+
+**Purpose:**
+- Share data across physical systems
+- Systems may be in same location or anywhere on Internet
+
+**Network filesystem characteristics:**
+- May have all data on one machine
+- Or spread across multiple network nodes
+- Can group different local filesystem types
+
+**Common use case:**
+- System administrators mount remote users' home directories on server
+- Users get access to same files/configuration across multiple clients
+- Can log into different computers with same files/resources
+
+**NFS (Network Filesystem):**
+- Most common network filesystem
+- Long history
+- First developed by Sun Microsystems
+
+**CIFS/SAMBA:**
+- Another common implementation
+- Has Microsoft roots
+
+---
+
+### NFS on the server
+
+**Starting NFS service:**
+```bash
+sudo systemctl start nfs
+```
+- Note: Some systems (RHEL/CentOS, Fedora) call it `nfs-server`
+
+**Configuration file: /etc/exports**
+- Contains directories and permissions host will share
+- Text file
+
+**Example entry:**
+```
+/projects *.example.com(rw)
+```
+- Allows `/projects` to be mounted via NFS
+- Read and write (rw) permissions
+- Shared with hosts in example.com domain
+
+**File permissions basics:**
+- Every file has three possible permissions:
+  - Read (r)
+  - Write (w)
+  - Execute (x)
+
+**Apply changes:**
+```bash
+exportfs -av                    # Notify Linux about shared directories
+sudo systemctl restart nfs      # Heavier option, halts NFS briefly
+sudo systemctl enable nfs       # Start NFS at boot
+```
+
+---
+
+### NFS on the client
+
+**Automatic mount at boot:**
+- Modify `/etc/fstab`
+
+**Example fstab entry:**
+```
+servername:/projects /mnt/nfs/projects nfs defaults 0 0
+```
+
+**One-time mount (without reboot):**
+```bash
+sudo mount servername:/projects /mnt/nfs/projects
+```
+
+**Important notes:**
+- Mount without fstab change won't persist after restart
+- Consider using `nofail` option in fstab if NFS server might not be live at boot
+
+---
+
+### User home directories
+
+**Structure:**
+- Each user has home directory
+- Usually under `/home`
+- Named according to user (e.g., `/home/student`)
+
+**Root user:**
+- `/root` directory = home directory of root user
+- Not the same as root directory (`/`)
+
+**Multi-user systems:**
+- `/home` infrastructure may be:
+  - Mounted as separate filesystem on own partition
+  - Exported remotely on network through NFS
+
+**Directory organization:**
+- Can group users by department/function
+- Create subdirectories under `/home`
+
+**Example school organization:**
+```
+/home/faculty/
+/home/staff/
+/home/students/
+```
+
+---
+
+### The /bin and /sbin directories
+
+**`/bin` directory:**
+- Contains executable binaries
+- Essential commands for:
+  - Booting system
+  - Single-user mode
+  - All system users
+- Examples: cat, cp, ls, mv, ps, rm
+
+**`/sbin` directory:**
+- Essential binaries for system administration
+- Examples: fsck, ip
+
+**View programs:**
+```bash
+ls /bin /sbin
+```
+
+**`/usr/bin` and `/usr/sbin`:**
+- Non-essential commands (theoretically)
+- Not needed to boot or operate in single-user mode
+- Historically `/usr` could be separate filesystem
+- Distinction now mostly obsolete
+
+**Modern distributions:**
+- `/usr/bin` and `/bin` symbolically linked together
+- `/usr/sbin` and `/sbin` symbolically linked together
+- Really just two directories, not four
+
+---
+
+### The /proc filesystem
+
+**Pseudo-filesystem:**
+- No actual permanent presence on disk
+- Contains virtual files (exist only in memory)
+
+**Purpose:**
+- Permits viewing constantly changing kernel data
+- Files/directories mimic kernel structures and configuration
+- Runtime system information, not real files
+
+**Important entries:**
+```
+/proc/cpuinfo
+/proc/interrupts
+/proc/meminfo
+/proc/mounts
+/proc/partitions
+/proc/version
+```
+
+**Subdirectories:**
+- `/proc/<Process-ID-#>` - Directory for every running process
+- `/proc/sys` - Virtual directory with system/hardware information
+
+**Key advantage:**
+- Information gathered only as needed
+- Never needs storage on disk
+
+---
+
+### The /dev directory
+
+**Device nodes:**
+- Type of pseudo-file for hardware and software devices
+- Exception: network devices
+
+**Characteristics:**
+- Empty on disk partition when not mounted
+- Entries created by udev system
+- Creates and manages device nodes dynamically when devices found
+
+**Examples:**
+- `/dev/sda1` - First partition on first hard disk
+- `/dev/lp1` - Second printer
+- `/dev/random` - Source of random numbers
+
+---
+
+### The /var directory
+
+**Purpose:**
+- Contains files expected to change in size and content as system runs
+- "var" stands for variable
+
+**Common subdirectories:**
+- `/var/log` - System log files
+- `/var/lib` - Packages and database files
+- `/var/spool` - Print queues
+- `/var/tmp` - Temporary files
+
+**Common practice:**
+- Put `/var` on own filesystem
+- Accommodates file growth
+- Exploding file sizes don't fatally affect system
+
+**Network services:**
+- `/var/ftp` - FTP service
+- `/var/www` - HTTP web service
+
+---
+
+### The /etc directory
+
+**Purpose:**
+- Home for system configuration files
+- Contains no binary programs
+- Some executable scripts present
+
+**Examples:**
+- `/etc/resolv.conf` - DNS configuration (hostname to IP address mappings)
+- `passwd`, `shadow`, `group` - User account management
+
+**Distribution differences:**
+- Historically different infrastructure per distribution
+- Red Hat/SUSE used `/etc/sysconfig`
+- systemd brought more uniformity
+
+**Important note:**
+- `/etc` for system-wide configuration
+- Only superuser can modify files
+- User-specific configuration always in home directory
+
+---
+
+### The /boot directory
+
+**Purpose:**
+- Contains essential files for booting system
+
+**Files per kernel (four files each):**
+
+1. **vmlinuz** - Compressed Linux kernel (required for booting)
+2. **initramfs** - Initial RAM filesystem (required for booting)
+   - Sometimes called initrd
+3. **config** - Kernel configuration file (debugging/bookkeeping only)
+4. **System.map** - Kernel symbol table (debugging only)
+
+**File naming:**
+- Each file has kernel version appended to name
+
+**Boot loader files:**
+- GRUB (Grand Unified Bootloader)
+- `/boot/grub/grub.conf` or `/boot/grub2/grub2.cfg`
+
+---
+
+### The /lib and /lib64 directories
+
+**`/lib` directory:**
+- Contains libraries (common code shared by applications)
+- Libraries for essential programs in `/bin` and `/sbin`
+- Filenames start with `ld` or `lib`
+- Example: `/lib/libncurses.so.5.9`
+
+**Library types:**
+- Dynamically loaded libraries
+- Also known as: shared libraries or Shared Objects (SO)
+
+**`/lib64` directory:**
+- Some distributions have separate directory
+- Contains 64-bit libraries
+- `/lib` contains 32-bit versions
+
+**Kernel modules:**
+- Located in `/lib/modules/<kernel-version-number>`
+- Kernel code (often device drivers)
+- Can be loaded/unloaded without restarting system
+
+**Modern note:**
+- Like `/bin` and `/sbin`, directories often point to those under `/usr`
+
+---
+
+### Removable media directories
+
+**Purpose:**
+- Make removable media accessible through regular filesystem
+- Must be mounted at convenient location
+
+**Media types:**
+- USB drives
+- CDs
+- DVDs
+
+**Historical location: `/media`**
+
+**Modern location: `/run`**
+- Modern distributions use `/run` directory
+- Example: USB drive labeled "myusbdrive" for user "student"
+  - Mount point: `/run/media/student/myusbdrive`
+
+**The `/mnt` directory:**
+- Used since early UNIX days
+- For temporarily mounting filesystems
+- Common uses:
+  - Removable media
+  - Network filesystems (not normally mounted)
+  - Temporary partitions
+  - Loopback filesystems (files pretending to be partitions)
+
+---
+
+### Additional directories under root
+
+**Additional root directories:**
+
+| Directory | Usage |
+|-----------|-------|
+| `/opt` | Optional application software packages |
+| `/sys` | Virtual pseudo-filesystem with system/hardware information. Can alter system parameters and debug. |
+| `/srv` | Site-specific data served up by system. Seldom used. |
+| `/tmp` | Temporary files. On some distributions: erased across reboot, may be ramdisk in memory. |
+| `/usr` | Multi-user applications, utilities, and data |
+
+---
+
+### The /usr directory tree
+
+**Purpose:**
+- Contains theoretically non-essential programs and scripts
+- Not needed to initially boot system
+
+**Subdirectories:**
+
+| Directory | Usage |
+|-----------|-------|
+| `/usr/include` | Header files used to compile applications |
+| `/usr/lib` | Libraries for programs in `/usr/bin` and `/usr/sbin` |
+| `/usr/lib64` | 64-bit libraries for 64-bit programs |
+| `/usr/sbin` | Non-essential system binaries, daemons, scripts |
+| `/usr/share` | Shared data used by applications (architecture-independent) |
+| `/usr/src` | Source code (usually for Linux kernel) |
+| `/usr/local` | Data/programs specific to local machine (includes bin, sbin, lib, share, include, etc.) |
+| `/usr/bin` | Primary directory of executable programs and scripts |
+
+---
+
+### Comparing files with diff
+
+**Purpose:**
+- Compare files and directories
+
+**Common diff options:**
+
+| Option | Usage |
+|--------|-------|
+| `-c` | Three lines of context before/after differing content |
+| `-r` | Recursively compare subdirectories |
+| `-i` | Ignore case of letters |
+| `-w` | Ignore differences in spaces and tabs (whitespace) |
+| `-q` | Quiet: only report if files differ (no listing of differences) |
+
+**Basic usage:**
+```bash
+diff [options] <filename1> <filename2>
+```
+
+**For binary files:**
+- Use `cmp` instead of `diff`
+
+**Graphical interfaces:**
+- diffuse
+- vimdiff
+- meld
+
+---
+
+### Using diff3 and patch
+
+**diff3 command:**
+- Compare three files at once
+- Uses one file as reference basis for other two
+
+**Syntax:**
+```bash
+diff3 MY-FILE COMMON-FILE YOUR-FILE
+```
+
+**Use case:**
+- You and co-worker modified same file independently
+- diff3 shows differences based on common starting file
+
+**patch command:**
+- Apply modifications distributed as patches
+- Patch file contains deltas (changes) to update file
+
+**Creating patch:**
+```bash
+diff -Nur originalfile newfile > patchfile
+```
+
+**Benefits:**
+- More concise than distributing entire file
+- Efficient for small changes (one line in 1000-line file = few-line patch)
+
+**Applying patch:**
+
+**Method 1 (more common):**
+```bash
+patch -p1 < patchfile
+```
+- Often used for entire directory tree
+
+**Method 2:**
+```bash
+patch originalfile patchfile
+```
+- Used for single file
+
+**Options:**
+- See `man patch` for details on `-p1` and other options
+
+---
+
+### Using the file utility
+
+**Linux file extension behavior:**
+- File extension doesn't categorize nature by default
+- Different from other operating systems
+- `file.txt` not necessarily a text file
+- Filename more meaningful to user than system
+
+**Application behavior:**
+- Applications examine file contents directly
+- Don't rely on extension
+- Different from Windows (`.exe` = executable)
+
+**file utility:**
+```bash
+file <filename>
+```
+
+**What it does:**
+- Examines file contents and characteristics
+- Determines actual file type
+- Identifies:
+  - Plain text
+  - Shared libraries
+  - Executable programs
+  - Scripts
+  - Other types
+
+---
+
+### Backing up data
+
+**Basic backup methods:**
+- Simple copying with `cp`
+- More robust `rsync`
+
+**Both can:**
+- Synchronize entire directory trees
+
+**rsync advantages:**
+- More efficient than cp
+- Checks if file being copied already exists
+- Avoids unnecessary copy if no change in size or modification time
+- Saves time
+- Copies only parts of files that actually changed
+
+**cp limitations:**
+- Only copy files on local machine
+- Exception: NFS-mounted filesystems
+
+**rsync capabilities:**
+- Copy between machines
+- Location format: `target:path`
+- Target format: `someone@host`
+- `someone@` optional (if remote user same as local)
+
+**Recursive copying:**
+- Use `-r` option
+- Recursively walks directory tree
+- Only differences transmitted over network
+- Very efficient
+
+---
+
+### Using rsync
+
+**Example backup command:**
+```bash
+rsync -r project-X archive-machine:archives/project-X
+```
+
+**Important warnings:**
+⚠️ rsync can be very destructive
+- Accidental misuse can harm data and programs
+- Inadvertent copying where not wanted
+- Specify correct options and paths carefully
+
+**Testing first:**
+- Highly recommended: use `--dry-run` option
+- Ensures results match expectations before actual run
+
+**Basic syntax:**
+```bash
+rsync sourcefile destinationfile
+```
+- Either file can be local or networked
+- Contents of sourcefile copied to destinationfile
+
+**Recommended option combination:**
+```bash
+rsync --progress -avrxH --delete sourcedir destdir
+```
+
+---
+
+### Compressing data
+
+**Why compress:**
+- Save disk space
+- Reduce transmission time over networks
+
+**Linux compression methods:**
+
+| Command | Characteristics |
+|---------|----------------|
+| `gzip` | Most frequently used Linux compression utility |
+| `bzip2` | Produces significantly smaller files than gzip |
+| `xz` | Most space-efficient compression utility in Linux |
+| `zip` | Required to examine/decompress archives from other operating systems |
+
+**Efficiency tradeoffs:**
+- More efficient compression = longer time
+- Decompression time doesn't vary as much
+
+**tar utility:**
+- Often used to group files in archive
+- Then compress whole archive at once
+
+---
+
+### Compressing data using gzip
+
+**Characteristics:**
+- Historically most widely used Linux compression
+- Compresses well
+- Very fast
+
+**Common usage:**
+
+| Command | Usage |
+|---------|-------|
+| `gzip *` | Compresses all files in current directory. Each file compressed and renamed with `.gz` extension. |
+| `gzip -r projectX` | Compresses all files in projectX directory and all subdirectories. |
+| `gunzip foo` | Decompresses foo from foo.gz file. (`gunzip` = `gzip -d`) |
+
+---
+
+### Compressing data using bzip2
+
+**Characteristics:**
+- Similar syntax to gzip
+- Different compression algorithm
+- Produces significantly smaller files
+- Takes longer time
+- More likely used for larger files
+
+**Common usage:**
+
+| Command | Usage |
+|---------|-------|
+| `bzip2 *` | Compresses all files in current directory. Replaces each with file renamed with `.bz2` extension. |
+| `bunzip2 *.bz2` | Decompresses all files with `.bz2` extension. (`bunzip2` = `bzip2 -d`) |
+
+**Current status:**
+- Recently deprecated due to lack of maintenance
+- xz has superior compression ratios and active maintenance
+- Should not be used for compressing new files
+- Still needed to decompress existing `.bz2` files
+
+---
+
+### Compressing data using xz
+
+**Characteristics:**
+- Most space-efficient compression frequently used in Linux
+- Choice for distributing and storing Linux kernel archives
+- Trades slower compression for higher compression ratio
+- Gradually becoming dominant compression method
+- Especially for large files downloaded from Internet
+
+**Common usage:**
+
+| Command | Usage |
+|---------|-------|
+| `xz *` | Compresses all files in current directory. Replaces each with `.xz` extension. |
+| `xz foo` | Compresses foo into foo.xz (default compression level -6). Removes foo if successful. |
+| `xz -dk bar.xz` | Decompresses bar.xz into bar. Does not remove bar.xz even if successful. |
+| `xz -dcf a.txt b.txt.xz > abcd.txt` | Decompresses mix of compressed and uncompressed files to stdout in single command. |
+| `xz -d *.xz` | Decompresses files compressed using xz. |
+
+**File extension:** `.xz`
+
+---
+
+### Handling files using zip
+
+**Current status:**
+- Rarely used to compress files in Linux
+- Needed to examine/decompress archives from other systems
+- Only used when:
+  - Files from Windows users/environment
+  - Internet downloads
+- Legacy program
+- Neither fast nor efficient
+
+**Common usage:**
+
+| Command | Usage |
+|---------|-------|
+| `zip backup *` | Compresses all files in current directory into backup.zip |
+| `zip -r backup.zip ~` | Archives login directory and all files/directories under it into backup.zip |
+| `unzip backup.zip` | Extracts all files in backup.zip to current directory |
+
+---
+
+### Archiving and compressing with tar
+
+**History:**
+- "tar" stood for "tape archive"
+- Originally archived files to magnetic tape
+
+**What it does:**
+- Create or extract files from archive (tarball)
+- Optionally compress while creating
+- Decompress while extracting
+
+**Common usage:**
+
+| Command | Usage |
+|---------|-------|
+| `tar xvf mydir.tar` | Extract all files in mydir.tar into mydir directory |
+| `tar zcvf mydir.tar.gz mydir` | Create archive and compress with gzip |
+| `tar jcvf mydir.tar.bz2 mydir` | Create archive and compress with bz2 |
+| `tar Jcvf mydir.tar.xz mydir` | Create archive and compress with xz |
+| `tar xvf mydir.tar.gz` | Extract all files. No need to tell tar it's gzip format. |
+
+**Dash usage:**
+- Dash (`-`) before options often done but usually unnecessary
+- Example: `tar -xvf mydir.tar` works same as `tar xvf mydir.tar`
+
+**Separate stages (slower, wastes space):**
+```bash
+tar cvf mydir.tar mydir ; gzip mydir.tar
+gunzip mydir.tar.gz ; tar xvf mydir.tar
+```
+- Creates unneeded intermediary `.tar` file
+- Not recommended
+
+---
+
+### Compression efficiency comparison
+
+**Demonstration factors:**
+- Compression factors
+- CPU time
+- Archive sizes
+
+**Key finding:**
+- Higher compression factors = longer CPU time
+- Producing smaller archives takes longer
+- Tradeoff between time and space
+
+---
+
+### Disk-to-disk copying (dd)
+
+**Purpose:**
+- Make copies of raw disk space
+
+**Example: Backup Master Boot Record (MBR):**
+```bash
+dd if=/dev/sda of=sda.mbr bs=512 count=1
+```
+- First 512-byte sector on disk
+- Contains partition table
+
+**⚠️ EXTREME WARNING:**
+```bash
+dd if=/dev/sda of=/dev/sdb
+```
+- **Deletes everything on second disk**
+- Creates exact copy of first disk on second
+- **Do NOT experiment with this command**
+- Can erase entire hard disk
+
+**Name origin:**
+- "dd" meaning often debated
+- Most popular theory: "data definition" (roots in early IBM)
+- Jokes: "disk destroyer", "delete data"
+
+---
+
+### Chapter 11 summary
+
+**Key concepts covered:**
+
+- **Filesystems:**
+  - "Everything is a file" philosophy
+  - Tree structure starting at root (`/`)
+  - Multiple filesystem types supported
+  - Journaling filesystems: ext4, xfs, btrfs, jfs
+
+- **Partitions and mounting:**
+  - Filesystems occupy disk partitions
+  - Mount points graft filesystems onto tree
+  - `/etc/fstab` for automatic mounting
+  - `df -Th` shows mounted filesystems
+
+- **NFS:**
+  - Network filesystem for sharing data
+  - Server configuration in `/etc/exports`
+  - Client configuration in `/etc/fstab`
+
+- **Important directories:**
+  - `/bin`, `/sbin` - Essential binaries
+  - `/etc` - System configuration
+  - `/var` - Variable files (logs, caches)
+  - `/home` - User home directories
+  - `/boot` - Boot files
+  - `/proc` - Virtual kernel data
+  - `/dev` - Device nodes
+  - `/lib` - Shared libraries
+  - `/usr` - User applications and utilities
+
+- **File comparison:**
+  - `diff` - Compare files and directories
+  - `diff3` - Compare three files
+  - `patch` - Apply changes from patch files
+  - `file` - Determine file type
+
+- **Backup and compression:**
+  - `rsync` - Efficient file synchronization
+  - `gzip` - Fast, widely used
+  - `bzip2` - Deprecated, smaller than gzip
+  - `xz` - Most efficient, modern choice
+  - `zip` - Legacy, for cross-platform compatibility
+  - `tar` - Archiving with optional compression
+  - `dd` - Raw disk copying (dangerous)
+
+---
