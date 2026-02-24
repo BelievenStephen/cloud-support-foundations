@@ -967,3 +967,156 @@ Explain how communication occurs on Ethernet networks.
 - Dynamically learn MAC addresses from traffic
 
 ---
+
+---
+
+## Feb 24, 2026
+
+## Module 8: The Internet Protocol
+
+### Module objective
+Explain the features of an IP address and how IPv4 addresses identify hosts on networks.
+
+**Topics covered:**
+- Purpose of an IPv4 Address
+- The IPv4 Address Structure
+
+---
+
+### Purpose of an IPv4 Address
+
+**Core concept:**
+- IPv4 address is a logical network address that identifies a particular host
+- Required for participation on the internet and almost all LANs
+
+**Address requirements:**
+- Must be properly configured and unique within the LAN (local communication)
+- Must be properly configured and unique in the world (remote communication)
+
+**Where IPv4 addresses are assigned:**
+- Network interface connection (usually a NIC)
+- Each network interface gets its own IPv4 address
+- Examples: workstations, servers, network printers, IP phones
+- Routers have IPv4 addresses on each interface
+
+**Critical for packet delivery:**
+- Every packet has source and destination IPv4 addresses
+- Networking devices use these addresses to route packets to destination
+- Return path uses source address to send replies back
+
+---
+
+### IPv4 Address Format
+
+**Binary representation:**
+- IPv4 addresses are 32 bits in length
+- Example: `11010001101001011100100000000001`
+
+**Octets (grouped bits):**
+- 32 bits grouped into four 8-bit bytes called octets
+- Example: `11010001.10100101.11001000.00000001`
+
+**Dotted-decimal notation:**
+- Each octet converted to decimal value (0-255)
+- Separated by decimal points (periods)
+- Example: `209.165.200.1`
+
+**Why dotted-decimal:**
+- Much easier for humans to read and configure
+- Standard format for representing IPv4 addresses
+- Binary still used by networking devices internally
+
+---
+
+### IPv4 Address Structure (Hierarchical)
+
+**Two-part structure:**
+- **Network portion:** Identifies which network the host is on
+- **Host portion:** Identifies the specific host on that network
+
+**Subnet mask role:**
+- Used to identify the network portion of an IPv4 address
+- Determines which bits represent the network vs host
+
+**Example breakdown:**
+- **IPv4 address:** `192.168.5.11`
+- **Subnet mask:** `255.255.255.0`
+- **Network portion:** `192.168.5` (first three octets)
+- **Host portion:** `11` (last octet)
+
+---
+
+### Hierarchical Addressing Benefits
+
+**Router efficiency:**
+- Routers only need to know how to reach each network
+- Don't need to track location of every individual host
+- Network portion provides routing direction
+
+**Analogy: Telephone system**
+- Country code, area code, exchange = network address
+- Remaining digits = local phone number (host)
+
+**Analogy: Postal system**
+- Postal code and city = network portion
+- Street address = host portion
+- Post office routes to city (network), then to specific address (host)
+
+---
+
+### Multiple Logical Networks on One Physical Network
+
+**Key concept:**
+- Multiple logical networks can exist on one physical network
+- Determined by different network portions in IPv4 addresses
+
+**Example scenario:**
+- **Physical network:** One Ethernet switch connecting 6 hosts
+- **Logical network 1:** Three hosts with addresses `192.168.18.x` (network: `192.168.18`)
+- **Logical network 2:** Three hosts with addresses `192.168.5.x` (network: `192.168.5`)
+
+**Communication rules:**
+- Hosts with same network portion can communicate directly
+- Hosts with different network portions require routing to communicate
+- Result: One physical network, two logical IPv4 networks
+
+---
+
+### IPv4 Address Components Summary
+
+| Component | Description | Example |
+|-----------|-------------|---------|
+| **Full IPv4 Address** | 32-bit logical address in dotted-decimal | `192.168.5.11` |
+| **Network Portion** | Identifies which network | `192.168.5` |
+| **Host Portion** | Identifies specific host on network | `11` |
+| **Subnet Mask** | Indicates network/host division | `255.255.255.0` |
+
+---
+
+### Key Takeaways
+
+**IPv4 address fundamentals:**
+- 32-bit address divided into 4 octets (8 bits each)
+- Represented in dotted-decimal notation for readability
+- Must be unique within LAN and globally unique for internet communication
+
+**Hierarchical structure:**
+- Two parts: network portion + host portion
+- Subnet mask determines the division
+- Network portion enables efficient routing
+
+**Network vs host:**
+- Network portion = which network (like postal code/city)
+- Host portion = specific device (like street address)
+- Routers route based on network portion only
+
+**Logical vs physical networks:**
+- Physical network = actual cables/switches connecting devices
+- Logical network = devices sharing same network portion in addresses
+- Multiple logical networks can exist on one physical network
+
+**Communication rules:**
+- Same network portion → direct communication
+- Different network portion → requires router
+
+---
