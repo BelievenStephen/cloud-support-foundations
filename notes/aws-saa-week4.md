@@ -574,3 +574,428 @@ Outbound:
 - Debug top-down to avoid wasting time at wrong layer
 
 ---
+
+## Feb 24, 2026
+
+### EC2 EBS Volumes + Snapshots Basics
+
+**Lab environment:**
+- Instance: `i-<INSTANCE_ID>` (`lab-unreachable`)
+- Region: us-west-1
+- Availability Zone: us-west-1c
+
+---
+
+### EBS Volume Review
+
+**Instance storage configuration:**
+- **Root device:** `/dev/xvda`
+- **Attached volumes:** 1 (root volume only)
+- **Root volume ID:** `vol-<VOLUME_ID>`
+
+**Volume details:**
+- **Type:** gp3 (General Purpose SSD)
+- **Size:** 8 GiB
+- **State:** in-use
+- **Encryption:** No
+- **IOPS:** 3000
+- **Throughput:** 125 MB/s
+
+**Key observation:** EBS volumes must be in the same Availability Zone as the instance to attach.
+
+---
+
+### EBS Volume Types
+
+**General Purpose SSD:**
+
+| Type | Use Case | Performance | Cost |
+|------|----------|-------------|------|
+| **gp3** | Default choice for most workloads | Configurable IOPS and throughput independent of size | Lower cost than gp2 |
+| **gp2** | Legacy general purpose | IOPS scales with volume size (3 IOPS/GiB) | Higher cost than gp3 for same performance |
+
+**Provisioned IOPS SSD:**
+
+| Type | Use Case | Performance | Cost |
+|------|----------|-------------|------|
+| **io2** | Mission-critical, high-performance databases | Up to 64,000 IOPS, 99.999% durability | Premium |
+| **io1** | Legacy provisioned IOPS | Up to 64,000 IOPS, 99.9% durability | Premium |
+
+**When to choose each:**
+- **gp3:** Default for most workloads (boot volumes, dev/test, low-latency apps)
+- **io2/io1:** Databases requiring consistent high IOPS (Oracle, SQL Server, MongoDB)
+
+**Key advantage of gp3:** IOPS and throughput are configurable separately from volume size.
+
+---
+
+### Root Volume vs Data Volume
+
+**Root volume:**
+- Contains OS and boot files
+- Device name typically `/dev/xvda` or `/dev/sda1`
+- Created automatically when instance launches
+- Deletion behavior configurable (default: delete on termination)
+
+**Data volume:**
+- Additional storage attached after instance creation
+- Used for application data, databases, logs
+- Device names like `/dev/xvdf`, `/dev/xvdg`, etc.
+- Requires formatting and mounting in OS
+- Typically preserved on instance termination
+
+---
+
+### Snapshots Overview
+
+**What snapshots are:**
+- Point-in-time backups of EBS volumes
+- Incremental (only changed blocks stored after first snapshot)
+- Stored in S3 (managed by AWS, not visible in your S3 console)
+- Can be copied across regions
+- Can be used to create new volumes or AMIs
+
+**Snapshot vs AMI:**
+- **Snapshot:** Backup of a single EBS volume
+- **AMI:** Template to launch instances (includes snapshot of root volume + configuration)
+
+**Use cases:**
+- Backup before risky changes
+- Disaster recovery
+- Create AMIs for replication
+- Copy data to different AZ/region
+
+---
+
+### EBS Cost Considerations
+
+**Ongoing costs:**
+- **Attached volumes:** Charged per GB-month whether instance is running or stopped
+- **Detached volumes:** Still charged until deleted
+- **Snapshots:** Charged per GB-month for stored data
+- **Data transfer:** Charged when copying snapshots across regions
+
+**Cost optimization:**
+- Delete unused volumes (check "available" state volumes)
+- Delete old snapshots no longer needed
+- Use gp3 instead of gp2 (same performance, lower cost)
+- Stop instances instead of leaving them running when not in use
+
+**Important:** Stopping an instance does NOT remove volumes or stop volume charges.
+
+---
+
+### Support Mapping: Disk Usage High / Volume Full
+
+**Symptoms:**
+- Alert: "No space left on device"
+- Application errors or crashes
+- SSH lag or timeout
+- Log write failures
+- Database cannot write
+
+---
+
+**Investigation: On-instance checks**
+
+**Step 1: Identify which filesystem is full**
+```bash
+df -h
+```
+
+**Example output:**
+```
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/xvda1      8.0G  7.8G  200M  98% /
+```
+
+**Key information:**
+- Which filesystem is full (`/`, `/data`, etc.)
+- How much space is used vs available
+- Which device the filesystem is on
+
+---
+
+**Step 2: Find largest directories**
+```bash
+# Check top-level directories under root
+sudo du -xhd1 / | sort -h
+
+# Check specific directory
+sudo du -xhd1 /var/log | sort -h
+```
+
+**Common space consumers:**
+- `/var/log` - Application and system logs
+- `/tmp` - Temporary files
+- `/var/cache` - Package manager cache
+- `/home` - User files
+- Application-specific directories
+
+---
+
+**Step 3: Confirm volume mapping**
+- EC2 Console → Instance → Storage tab
+- Match device name to filesystem in `df -h`
+- Determine if full filesystem is on root volume or data volume
+
+---
+
+**Resolution options (in order of risk):**
+
+**Option A: Delete or rotate logs (safest)**
+```bash
+# View large log files
+sudo ls -lhS /var/log/
+
+# Truncate a log file (preserves file, empties content)
+sudo truncate -s 0 /var/log/large-file.log
+
+# Delete old rotated logs
+sudo rm /var/log/*.gz
+sudo rm /var/log/*.1 /var/log/*.2
+```
+
+---
+
+**Option B: Remove temporary files**
+```bash
+# Clear /tmp (be cautious, may affect running processes)
+sudo rm -rf /tmp/*
+
+# Clear package manager cache (safe)
+sudo yum clean all     # Amazon Linux, RHEL
+sudo apt-get clean     # Ubuntu, Debian
+```
+
+---
+
+**Option C: Increase volume size (requires reboot or careful resize)**
+
+**Step 1: Modify volume size in console**
+- EC2 Console → Volumes → Select volume → Actions → Modify volume
+- Increase size (e.g., 8 GiB → 20 GiB)
+- Wait for modification to complete (state: optimizing)
+
+**Step 2: Extend partition (if needed)**
+```bash
+# Check current partitions
+lsblk
+
+# Extend partition (example for root partition)
+sudo growpart /dev/xvda 1
+```
+
+**Step 3: Resize filesystem**
+
+**For ext4:**
+```bash
+sudo resize2fs /dev/xvda1
+```
+
+**For xfs:**
+```bash
+sudo xfs_growfs /
+```
+
+**Step 4: Verify**
+```bash
+df -h
+# Should show increased size
+```
+
+---
+
+**Verification:**
+- `df -h` shows free space available
+- Application resumes normal operation
+- SSH responsiveness improves
+- No more "No space left on device" errors
+
+---
+
+### Support Mapping: Add Second EBS Volume to Instance
+
+**Requirement:** Add storage without modifying root disk
+
+**Example use case:** Separate application data from OS disk
+
+---
+
+**Preparation: Confirm instance Availability Zone**
+- EC2 Console → Instance → Details → Availability Zone
+- Note: us-west-1c (example)
+- New volume MUST be created in same AZ
+
+---
+
+**Step 1: Create new EBS volume**
+- EC2 Console → Volumes → Create volume
+- **Volume type:** gp3
+- **Size:** Based on storage needs (e.g., 50 GiB)
+- **Availability Zone:** us-west-1c (MUST match instance)
+- **Encryption:** Enable if required
+- Create volume
+
+---
+
+**Step 2: Attach volume to instance**
+- Volumes → Select new volume → Actions → Attach volume
+- **Instance:** Select target instance
+- **Device name:** `/dev/xvdf` (or next available)
+- Attach
+
+---
+
+**Step 3: Format and mount on instance**
+
+**Check new device:**
+```bash
+lsblk
+```
+
+**Example output:**
+```
+NAME    MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+xvda    202:0    0   8G  0 disk
+└─xvda1 202:1    0   8G  0 part /
+xvdf    202:80   0  50G  0 disk
+```
+
+**Format new volume (if brand new, not from snapshot):**
+```bash
+# Create ext4 filesystem
+sudo mkfs -t ext4 /dev/xvdf
+
+# OR create xfs filesystem
+sudo mkfs -t xfs /dev/xvdf
+```
+
+**Warning:** Formatting erases all data. Skip if volume is from a snapshot.
+
+---
+
+**Create mount point and mount:**
+```bash
+# Create directory
+sudo mkdir /data
+
+# Mount volume
+sudo mount /dev/xvdf /data
+
+# Verify
+df -h
+```
+
+---
+
+**Step 4: Make mount persistent (survive reboot)**
+
+**Get volume UUID:**
+```bash
+sudo blkid /dev/xvdf
+```
+
+**Example output:**
+```
+/dev/xvdf: UUID="abc123-def456-..." TYPE="ext4"
+```
+
+**Add to /etc/fstab:**
+```bash
+sudo nano /etc/fstab
+```
+
+**Add line (use UUID, not device name):**
+```
+UUID=abc123-def456-...  /data  ext4  defaults,nofail  0  2
+```
+
+**Test fstab:**
+```bash
+sudo mount -a
+```
+
+**If no errors, configuration is correct.**
+
+---
+
+**Verification:**
+- `df -h` shows new mount point with correct size
+- `lsblk` shows volume mounted
+- Test write: `sudo touch /data/test.txt`
+- Reboot instance and verify mount persists
+
+---
+
+### Common EBS Operations Reference
+
+| Task | Command/Action | Notes |
+|------|---------------|-------|
+| **Check disk usage** | `df -h` | Shows filesystem usage and mount points |
+| **Find large directories** | `sudo du -xhd1 / \| sort -h` | Identifies space consumers |
+| **List block devices** | `lsblk` | Shows all disks and partitions |
+| **Check volume in console** | EC2 → Volumes | View state, size, IOPS, attachments |
+| **Resize volume** | Modify volume → Increase size | Requires filesystem resize after |
+| **Extend partition** | `sudo growpart /dev/xvda 1` | Expands partition to use new space |
+| **Resize ext4** | `sudo resize2fs /dev/xvda1` | Grows ext4 filesystem |
+| **Resize xfs** | `sudo xfs_growfs /` | Grows xfs filesystem |
+| **Format new volume** | `sudo mkfs -t ext4 /dev/xvdf` | Creates filesystem (erases data) |
+| **Get UUID** | `sudo blkid /dev/xvdf` | Gets UUID for fstab entry |
+
+---
+
+### Troubleshooting Tips
+
+**Volume won't attach:**
+- Verify volume and instance are in same AZ
+- Check instance is running or stopped (not terminated)
+- Verify device name not already in use
+
+**Filesystem not growing after resize:**
+- Check partition was extended (`lsblk`)
+- Verify used correct resize command (ext4 vs xfs)
+- Ensure running resize on mounted filesystem
+
+**Mount fails after reboot:**
+- Check fstab syntax (spaces vs tabs matter)
+- Verify UUID is correct
+- Use `nofail` option to prevent boot hang
+- Test with `sudo mount -a` before rebooting
+
+**"No space left" but df shows space:**
+- Check inode usage: `df -i`
+- Too many small files can exhaust inodes
+- May need to delete many small files
+
+---
+
+### Key Takeaways
+
+**EBS volume basics:**
+- Must be in same AZ as instance
+- Charges apply even when instance is stopped
+- Root vs data volumes serve different purposes
+- gp3 is default choice for most workloads
+
+**Disk full troubleshooting:**
+1. Use `df -h` to identify full filesystem
+2. Use `du` to find space consumers
+3. Delete logs/temp files first
+4. Resize volume if needed
+5. Always extend filesystem after volume resize
+
+**Adding data volume:**
+1. Confirm instance AZ
+2. Create volume in same AZ
+3. Attach to instance
+4. Format (if new), mount, test
+5. Add to fstab for persistence
+
+**Cost awareness:**
+- Volumes cost money whether attached or not
+- Snapshots accumulate storage costs
+- Delete unused resources regularly
+- gp3 typically cheaper than gp2 for same performance
+
+---
