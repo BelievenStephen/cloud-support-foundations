@@ -4197,3 +4197,491 @@ dd if=/dev/sda of=/dev/sdb
   - `dd` - Raw disk copying (dangerous)
 
 ---
+
+## Feb 25, 2026
+
+## Chapter 12: Text editors
+
+### Learning objectives
+
+By the end of this chapter, I should be familiar with:
+- How to create and edit files using available Linux text editors
+- nano, a simple text-based editor
+- gedit, a simple graphical editor
+- vi and emacs, two advanced editors with both text-based and graphical interfaces
+
+---
+
+### Overview of text editors in Linux
+
+**Why text editors matter:**
+- Need to manually edit text files for many tasks:
+  - Composing email offline
+  - Writing scripts (bash or other interpreters)
+  - Altering system/application configuration files
+  - Developing source code (C, Python, Java, etc.)
+
+**Why not use word processors:**
+- Graphical utilities can be more laborious than text editors
+- More limited in capability
+- Word processors add invisible formatting information
+- Formatting can render system configuration files unusable
+- Knowing text editors is essential skill for Linux
+
+**Text editor choices:**
+- nano (simple)
+- gedit (simple graphical)
+- vi (advanced)
+- emacs (advanced)
+- Visual Studio Code (modern IDE, not covered in detail)
+
+**Note on Visual Studio Code:**
+- Full-featured integrated development environment
+- Not lightweight
+- Many new Linux users already familiar from other OS
+- Installation varies by distribution
+- Usually requires additional package repositories
+
+---
+
+### Creating files without using an editor
+
+**Why this matters:**
+- Sometimes want to create short file quickly
+- Useful when used from within scripts
+- Can create longer files this way
+
+**Method 1: Using echo repeatedly**
+```bash
+echo line one > myfile
+echo line two >> myfile
+echo line three >> myfile
+```
+
+**Important:**
+- Single `>` sends output to file (overwrites existing file)
+- Double `>>` appends to existing file
+
+**Method 2: Using cat with redirection**
+```bash
+cat << EOF > myfile
+> line one
+> line two
+> line three
+> EOF
+```
+
+**Notes:**
+- String to show beginning/end need not be `EOF`
+- Could be `STOP` or any string not used in content
+- Both techniques produce same file content
+- Extremely useful when employed by scripts
+
+---
+
+### nano
+
+**Characteristics:**
+- Easy to use
+- Requires very little effort to learn
+- Text terminal-based editor
+
+**Starting nano:**
+```bash
+nano <filename>
+```
+- If file doesn't exist, it will be created
+
+**Interface:**
+- Two-line shortcut bar at bottom lists available commands
+- All help displayed on screen
+
+**Common commands:**
+
+| Command | Function |
+|---------|----------|
+| `CTRL-G` | Display help screen |
+| `CTRL-O` | Write to file |
+| `CTRL-X` | Exit file |
+| `CTRL-R` | Insert contents from another file |
+| `CTRL-C` | Show cursor position |
+
+---
+
+### gedit
+
+**Characteristics:**
+- Pronounced "g-edit"
+- Simple-to-use graphical editor
+- Only runs within graphical desktop environment
+- Part of GNOME desktop system
+- Similar to Windows Notepad but far more capable
+- Very configurable
+- Wealth of plugins available
+
+**Starting gedit:**
+- Find in desktop's menu system, OR
+```bash
+gedit <filename>
+```
+- If file doesn't exist, it will be created
+
+**Interface:**
+- Straightforward, doesn't require much training
+- Composed of familiar elements
+
+**KDE alternative:**
+- kwrite (associated with KDE)
+- kate (variant also supported by KDE)
+
+---
+
+### Visual Studio Code
+
+**Characteristics:**
+- Simple-to-use graphical editor
+- Much more than text editor
+- Full-featured integrated development environment
+
+**Note:** Not covered in detail in this course
+
+---
+
+### Advanced editors: vi and emacs
+
+**Why they matter:**
+- Developers/administrators on UNIX-like systems almost always use one of these
+- Present or easily available on all distributions
+- Completely compatible across operating systems
+
+**Key characteristics:**
+- Basic text-based form (runs in non-graphical environment)
+- Graphical interface forms with extended capabilities
+- Steep learning curves for new users
+- Extremely efficient once learned
+
+**"Holy war":**
+- Fights over which is better can be intense
+- Many more users of vi than emacs
+- Both here to stay
+
+---
+
+### Introduction to vi
+
+**What's actually installed:**
+- Usually `vim` (Vi IMproved)
+- Aliased to name `vi`
+- Name pronounced "vee-eye"
+
+**Why learn vi:**
+- Even if you don't want to use it, gain some familiarity
+- Standard tool on virtually all Linux distributions
+- May be times when no other editor available
+
+**Graphical versions:**
+- GNOME: gvim (graphical vi)
+- KDE: kvim
+- May be easier to use at first
+
+**Key advantage:**
+- All commands entered through keyboard
+- Don't need to move hands to pointer device
+- Exception: can use mouse in graphical versions
+
+---
+
+### vimtutor
+
+**What it is:**
+```bash
+vimtutor
+```
+- Launches short but comprehensive tutorial
+- Provides introduction with seven lessons
+- Enough material to make you proficient vi user
+- Covers large number of commands
+
+**After basic lessons:**
+- Look up new tricks to incorporate
+- Always more optimal ways with less typing
+
+---
+
+### Modes in vi
+
+**Three modes:**
+
+| Mode | Feature |
+|------|---------|
+| **Command** | Default mode when vi starts. Each key is editor command. Keyboard strokes interpreted as commands to modify file contents. |
+| **Insert** | Type `i` to switch from Command mode. Used to enter (insert) text into file. Indicated by "INSERT" at bottom of screen. Press `Esc` to return to Command mode. |
+| **Line** | Type `:` to switch from Command mode. Each key is external command (writing file, exiting). Line editing commands inherited from older editors. Most no longer used, but some very powerful. Press `Esc` to return to Command mode. |
+
+**Critical:**
+- Vital to not lose track of which mode you're in
+- Keys and commands behave differently in different modes
+
+---
+
+### Working with files in vi
+
+**Start, exit, read, and write files:**
+
+**Note:** `ENTER` key must be pressed after all these commands
+
+| Command | Usage |
+|---------|-------|
+| `vi myfile` | Start editor and edit myfile |
+| `vi -r myfile` | Start and edit myfile in recovery mode (from system crash) |
+| `:r file2` | Read in file2 and insert at current position |
+| `:w` | Write to file |
+| `:w myfile` | Write out to myfile |
+| `:w! file2` | Overwrite file2 |
+| `:x` or `:wq` | Exit and write out modified file |
+| `:q` | Quit |
+| `:q!` | Quit even though modifications not saved |
+
+---
+
+### Changing cursor positions in vi
+
+**Line mode commands (following `:`) require `ENTER` after command**
+
+| Key | Usage |
+|-----|-------|
+| arrow keys | Move up, down, left, right |
+| `j` or `<ret>` | Move one line down |
+| `k` | Move one line up |
+| `h` or Backspace | Move one character left |
+| `l` or Space | Move one character right |
+| `0` | Move to beginning of line |
+| `$` | Move to end of line |
+| `w` | Move to beginning of next word |
+| `b` | Move back to beginning of preceding word |
+| `:0` or `1G` | Move to beginning of file |
+| `:n` or `nG` | Move to line n |
+| `:$` or `G` | Move to last line in file |
+| `CTRL-F` or Page Down | Move forward one page |
+| `CTRL-B` or Page Up | Move backward one page |
+| `^l` | Refresh and center screen |
+
+---
+
+### Searching for text in vi
+
+**`ENTER` key should be pressed after typing search pattern**
+
+**Commands:**
+
+| Command | Usage |
+|---------|-------|
+| `/pattern` | Search forward for pattern |
+| `?pattern` | Search backward for pattern |
+
+**Navigation keys:**
+
+| Key | Usage |
+|-----|-------|
+| `n` | Move to next occurrence of search pattern |
+| `N` | Move to previous occurrence of search pattern |
+
+---
+
+### Working with text in vi
+
+**Changing, adding, and deleting text:**
+
+| Key | Usage |
+|-----|-------|
+| `a` | Append text after cursor; stop upon Escape |
+| `A` | Append text at end of current line; stop upon Escape |
+| `i` | Insert text before cursor; stop upon Escape |
+| `I` | Insert text at beginning of current line; stop upon Escape |
+| `o` | Start new line below current line, insert text; stop upon Escape |
+| `O` | Start new line above current line, insert text; stop upon Escape |
+| `r` | Replace character at current position |
+| `R` | Replace text starting with current position; stop upon Escape |
+| `x` | Delete character at current position |
+| `Nx` | Delete N characters, starting at current position |
+| `dw` | Delete word at current position |
+| `D` | Delete rest of current line |
+| `dd` | Delete current line |
+| `Ndd` or `dNd` | Delete N lines |
+| `u` | Undo previous operation |
+| `yy` | Yank (copy) current line and put in buffer |
+| `Nyy` or `yNy` | Yank (copy) N lines and put in buffer |
+| `p` | Paste yanked line(s) from buffer at current position |
+
+---
+
+### vi command reference
+
+**Complete command reference:**
+
+See attached reference guide for comprehensive vi commands:
+- Starting, exiting, reading, and writing files
+- Changing cursor positions
+- Searching for text
+- Working with text (changing, adding, deleting)
+
+---
+
+### Using external commands in vi
+
+**Open external command shell:**
+```
+sh command
+```
+- When you exit shell, resume editing session
+
+**Execute command from within vi:**
+```
+! command
+```
+- Command follows exclamation point
+- Best suited for non-interactive commands
+
+**Example:**
+```
+:! wc %
+```
+- Runs `wc` (word count) on file
+- `%` represents file currently being edited
+
+---
+
+### Introduction to emacs
+
+**Characteristics:**
+- Popular competitor for vi
+- Does NOT work with modes (unlike vi)
+- Highly customizable
+- Large number of features
+- Initially designed for console
+- Soon adapted for GUI
+
+**Additional capabilities:**
+- More than simple text editing
+- Can be used for email, debugging, etc.
+
+**Command structure:**
+- Uses CTRL and Meta (Alt or Esc) keys for special commands
+- No separate modes like vi
+
+---
+
+### Working with emacs
+
+**Starting, exiting, reading, and writing files:**
+
+| Key | Usage |
+|-----|-------|
+| `emacs myfile` | Start emacs and edit myfile |
+| `CTRL-x i` | Insert prompted file at current position |
+| `CTRL-x s` | Save all files |
+| `CTRL-x CTRL-w` | Write to file giving new name when prompted |
+| `CTRL-x CTRL-s` | Save current file |
+| `CTRL-x CTRL-c` | Exit after being prompted to save modified files |
+
+**emacs tutorial:**
+- Available any time within emacs
+- Type `CTRL-h` (for help) then `t` (for tutorial)
+- Good place to start learning basic commands
+
+---
+
+### Changing cursor positions in emacs
+
+**Keys and key combinations:**
+
+| Key | Usage |
+|-----|-------|
+| arrow keys | Up, down, left, right |
+| `CTRL-n` | One line down |
+| `CTRL-p` | One line up |
+| `CTRL-f` | One character forward/right |
+| `CTRL-b` | One character back/left |
+| `CTRL-a` | Move to beginning of line |
+| `CTRL-e` | Move to end of line |
+| `Meta-f` | Move to beginning of next word |
+| `Meta-b` | Move back to beginning of preceding word |
+| `Meta-<` | Move to beginning of file |
+| `Meta-g-g-n` | Move to line n (can also use `Esc-x Goto-line n`) |
+| `Meta->` | Move to end of file |
+| `CTRL-v` or Page Down | Move forward one page |
+| `Meta-v` or Page Up | Move backward one page |
+| `CTRL-l` | Refresh and center screen |
+
+---
+
+### Searching for text in emacs
+
+**Key combinations:**
+
+| Key | Usage |
+|-----|-------|
+| `CTRL-s` | Search forward for prompted pattern, or for next pattern |
+| `CTRL-r` | Search backward for prompted pattern, or for next pattern |
+
+---
+
+### Working with text in emacs
+
+**Changing, adding, and deleting text:**
+
+| Key | Usage |
+|-----|-------|
+| `CTRL-o` | Insert blank line |
+| `CTRL-d` | Delete character at current position |
+| `CTRL-k` | Delete rest of current line |
+| `CTRL-_` | Undo previous operation |
+| `CTRL-space` or `CTRL-@` | Mark beginning of selected region (end at cursor position) |
+| `CTRL-w` | Delete current marked text and write to buffer |
+| `CTRL-y` | Insert at current cursor location whatever was most recently deleted |
+
+---
+
+### emacs command reference
+
+**Complete command reference:**
+
+See attached reference guide for comprehensive emacs commands:
+- Working with emacs (starting, saving, exiting)
+- Changing cursor positions
+- Searching for text
+- Working with text (changing, adding, deleting)
+
+---
+
+### Chapter 12 summary
+
+**Key concepts covered:**
+
+- **Text editors vs word processors:**
+  - Text editors used for system config files, scripts, source code
+  - Word processors add formatting that can break config files
+
+- **Simple editors:**
+  - **nano:** Easy-to-use text-based editor with on-screen prompts
+  - **gedit:** Graphical editor similar to Windows Notepad
+
+- **Advanced editors:**
+  - **vi:** Available on all Linux systems, very widely used
+  - **emacs:** Popular alternative to vi on all Linux systems
+  - Both support graphical and text mode interfaces
+
+- **Tutorials:**
+  - vi: Type `vimtutor` at command line
+  - emacs: Type `CTRL-h` then `t` from within emacs
+
+- **Editor modes:**
+  - **vi:** Three modes (Command, Insert, Line)
+  - **emacs:** One mode, requires special keys (Control, Escape)
+
+- **Learning curve:**
+  - Both use various keystroke combinations
+  - Learning curve can be long
+  - Once mastered, extremely efficient
+
+---
