@@ -999,3 +999,423 @@ sudo mount -a
 - gp3 typically cheaper than gp2 for same performance
 
 ---
+
+## Feb 25, 2026
+
+### S3 Permissions + AccessDenied Triage
+
+**Lab setup:**
+- Created bucket: `stephen-s3-perms-0225`
+- Region: us-west-1
+- Purpose: Review S3 permissions architecture and troubleshooting
+
+---
+
+### S3 Access Control Layers
+
+**Three main layers evaluated for access decisions:**
+
+1. **IAM Identity Policy:**
+   - Attached to users, groups, or roles
+   - Grants permissions to the principal
+   - Must explicitly allow the action
+
+2. **S3 Bucket Policy:**
+   - Attached to the S3 bucket
+   - Can allow or deny specific principals
+   - Can include conditions (IP, MFA, VPC endpoint, etc.)
+
+3. **Block Public Access (BPA):**
+   - Account-level and bucket-level settings
+   - Overrides policies that would allow public access
+   - Four settings (all should be ON for baseline security)
+
+**Additional layer (if applicable):**
+- **KMS Key Policy:** If bucket uses SSE-KMS encryption
+
+---
+
+### Lab Bucket Configuration Review
+
+**Caller identity verification:**
+```bash
+aws sts get-caller-identity
+```
+- **Principal:** IAM user `stephen-admin`
+- **Permissions:** AdministratorAccess (broad IAM policy)
+- **Expected:** Bucket accessible unless explicit deny or BPA blocks
+
+---
+
+**Block Public Access settings:**
+- Location: S3 Console → Bucket → Permissions → Block public access
+- **All 4 settings:** ON (correct baseline)
+- **Purpose:** Prevent unintended public exposure
+
+**Four BPA settings:**
+1. Block public access to buckets and objects granted through new access control lists (ACLs)
+2. Block public access to buckets and objects granted through any access control lists (ACLs)
+3. Block public access to buckets and objects granted through new public bucket or access point policies
+4. Block public and cross-account access to buckets and objects through any public bucket or access point policies
+
+---
+
+**Bucket policy:**
+- Location: S3 Console → Bucket → Permissions → Bucket policy
+- **Current state:** No bucket policy defined
+- **Implication:** No policy-based allow or deny affecting access
+
+---
+
+**Object Ownership:**
+- Location: S3 Console → Bucket → Permissions → Object Ownership
+- **Setting:** Bucket owner enforced
+- **Implication:** ACLs disabled, bucket policy is main access control
+- **Best practice:** Prevents ACL-based public access issues
+
+---
+
+**Default encryption:**
+- Location: S3 Console → Bucket → Properties → Default encryption
+- **Encryption type:** SSE-S3 (S3-managed keys)
+- **Implication:** No KMS permissions required for this bucket
+
+---
+
+### S3 Action-to-ARN Mapping
+
+**Critical distinction: Bucket operations vs Object operations**
+
+| Action | Required Permission | Resource ARN |
+|--------|-------------------|--------------|
+| **List bucket** | `s3:ListBucket` | `arn:aws:s3:::bucket-name` (bucket ARN) |
+| **Read object** | `s3:GetObject` | `arn:aws:s3:::bucket-name/*` (object ARN with wildcard) |
+| **Write object** | `s3:PutObject` | `arn:aws:s3:::bucket-name/*` |
+| **Delete object** | `s3:DeleteObject` | `arn:aws:s3:::bucket-name/*` |
+
+**Common mistake:** Using bucket ARN when object ARN is needed (or vice versa)
+
+---
+
+### Support Mapping: S3 AccessDenied (403) Triage
+
+**Systematic troubleshooting order:**
+
+**Step 1: Confirm caller identity**
+```bash
+aws sts get-caller-identity
+```
+- Verify who is making the request
+- Check if it's the expected user/role
+- Note account ID
+
+---
+
+**Step 2: Identify exact action and resource**
+
+**From error message, extract:**
+- **Action:** What were you trying to do? (`ListBucket`, `GetObject`, `PutObject`)
+- **Bucket:** Which bucket? (e.g., `my-bucket`)
+- **Object key:** Which object? (if object operation)
+
+---
+
+**Step 3: Check IAM identity policy**
+
+**For ListBucket (403 when listing):**
+```json
+{
+  "Effect": "Allow",
+  "Action": "s3:ListBucket",
+  "Resource": "arn:aws:s3:::bucket-name"
+}
+```
+
+**For GetObject (403 when reading):**
+```json
+{
+  "Effect": "Allow",
+  "Action": "s3:GetObject",
+  "Resource": "arn:aws:s3:::bucket-name/*"
+}
+```
+
+**Common issues:**
+- Missing permission entirely
+- Wrong resource ARN (bucket ARN instead of object ARN, or vice versa)
+- Typo in bucket name
+
+---
+
+**Step 4: Check bucket policy for explicit deny or conditions**
+
+**S3 Console → Bucket → Permissions → Bucket policy**
+
+**Look for:**
+- `"Effect": "Deny"` statements
+- Condition blocks restricting access:
+  - `IpAddress` or `NotIpAddress`
+  - `aws:SecureTransport` (HTTPS required)
+  - `aws:MultiFactorAuthPresent`
+  - `aws:SourceVpce` (VPC endpoint restriction)
+
+**Example restrictive policy:**
+```json
+{
+  "Effect": "Deny",
+  "Principal": "*",
+  "Action": "s3:*",
+  "Resource": [
+    "arn:aws:s3:::bucket-name",
+    "arn:aws:s3:::bucket-name/*"
+  ],
+  "Condition": {
+    "NotIpAddress": {
+      "aws:SourceIp": "<ALLOWED_IP>/32"
+    }
+  }
+}
+```
+
+---
+
+**Step 5: Check Block Public Access settings**
+
+**Note:** BPA typically prevents public access, not authenticated principal access.
+
+**Exception:** If BPA setting "Block public and cross-account access" is ON, cross-account access may be blocked even with bucket policy.
+
+---
+
+**Step 6: If SSE-KMS encryption, verify KMS permissions**
+
+**Check encryption type:**
+- S3 Console → Bucket → Properties → Default encryption
+- If SSE-KMS (not SSE-S3):
+
+**Required IAM permissions:**
+```json
+{
+  "Effect": "Allow",
+  "Action": [
+    "kms:Decrypt",
+    "kms:DescribeKey"
+  ],
+  "Resource": "arn:aws:kms:region:account:key/key-id"
+}
+```
+
+**Required KMS key policy:**
+- Key policy must allow the principal to use the key
+- Check: KMS Console → Keys → Select key → Key policy
+
+---
+
+### Resolution Steps: AccessDenied
+
+**If IAM policy missing/incorrect:**
+1. Add required permission (s3:ListBucket or s3:GetObject)
+2. Verify correct resource ARN (bucket vs object)
+3. Test access again
+
+**If bucket policy has explicit deny:**
+1. Review deny conditions
+2. Remove deny or adjust conditions to exclude this principal
+3. Test access again
+
+**If KMS permissions missing:**
+1. Add kms:Decrypt to IAM policy
+2. Verify KMS key policy allows principal
+3. Test access again
+
+---
+
+### Verification
+
+**Test list bucket:**
+```bash
+aws s3 ls s3://bucket-name/
+```
+
+**Test read object:**
+```bash
+aws s3 cp s3://bucket-name/object-key /tmp/test
+```
+
+**Check CloudTrail for policy changes:**
+- CloudTrail Event history
+- Filter by event names:
+  - `PutBucketPolicy`
+  - `PutPublicAccessBlock`
+  - `PutBucketAcl`
+  - `PutBucketOwnershipControls`
+
+---
+
+### Support Mapping: Bucket is Public When It Shouldn't Be
+
+**Security concern: Unintended public exposure**
+
+**Systematic investigation:**
+
+**Step 1: Check Block Public Access settings**
+
+**Bucket-level:**
+- S3 Console → Bucket → Permissions → Block public access (bucket settings)
+- **Expected:** All 4 settings ON
+
+**Account-level:**
+- S3 Console → Block Public Access settings for this account
+- **Expected:** All 4 settings ON
+
+**If any are OFF:** Enable them immediately
+
+---
+
+**Step 2: Check bucket policy for public access**
+
+**S3 Console → Bucket → Permissions → Bucket policy**
+
+**Look for:**
+```json
+{
+  "Effect": "Allow",
+  "Principal": "*",
+  "Action": "s3:GetObject",
+  "Resource": "arn:aws:s3:::bucket-name/*"
+}
+```
+
+**`Principal: "*"` = public access**
+
+---
+
+**Step 3: Check Object Ownership setting**
+
+**S3 Console → Bucket → Permissions → Object Ownership**
+
+**Recommended setting:** Bucket owner enforced
+- Disables ACLs
+- Prevents object-level public access via ACLs
+- Bucket policy is sole access control mechanism
+
+**If set to "Object writer":**
+- Objects can have individual ACLs
+- Object uploader can grant public access
+- Review each object's ACL
+
+---
+
+**Step 4: Check for public object ACLs (if ownership not enforced)**
+
+**From CLI:**
+```bash
+# List objects with public ACLs
+aws s3api list-objects-v2 --bucket bucket-name \
+  --query 'Contents[?StorageClass==`STANDARD`].[Key]' \
+  --output text | while read key; do
+    aws s3api get-object-acl --bucket bucket-name --key "$key"
+  done
+```
+
+**Look for:** Grantee with URI `http://acs.amazonaws.com/groups/global/AllUsers`
+
+---
+
+### Resolution Steps: Remove Public Access
+
+**Step 1: Enable Block Public Access**
+- S3 Console → Bucket → Permissions → Block public access
+- Edit → Check all 4 boxes → Save changes
+
+**Step 2: Remove public bucket policy**
+- Bucket → Permissions → Bucket policy
+- Remove or modify statements with `"Principal": "*"`
+- Save changes
+
+**Step 3: Enforce Object Ownership**
+- Bucket → Permissions → Object Ownership
+- Edit → Select "Bucket owner enforced"
+- Save changes
+
+**Step 4: Verify public access removed**
+- Check bucket details page
+- "Public access" indicator should show "Objects can be public" (if BPA off) or "Bucket and objects not public"
+
+**Test anonymous access:**
+```bash
+curl -I https://bucket-name.s3.region.amazonaws.com/object-key
+# Should return 403 Forbidden
+```
+
+---
+
+### CloudTrail Investigation for S3 Changes
+
+**Key event names to filter:**
+
+| Change Type | Event Name | What to Look For |
+|------------|-----------|------------------|
+| **Bucket policy changed** | `PutBucketPolicy`, `DeleteBucketPolicy` | New policy JSON, who changed it |
+| **BPA changed** | `PutPublicAccessBlock` | Which settings changed, who changed |
+| **Object ownership changed** | `PutBucketOwnershipControls` | New ownership setting |
+| **ACL changed** | `PutBucketAcl`, `PutObjectAcl` | New ACL grants |
+
+**Investigation steps:**
+1. CloudTrail → Event history
+2. Filter by event name
+3. Filter by resource (bucket name)
+4. Review `requestParameters` for changes
+5. Note `userIdentity` (who made change)
+6. Note `eventTime` (when it happened)
+
+---
+
+### Common S3 AccessDenied Patterns
+
+| Symptom | Common Cause | Where to Check |
+|---------|--------------|----------------|
+| **403 listing bucket** | IAM missing s3:ListBucket on bucket ARN | IAM policy Resource statement |
+| **403 reading object** | IAM missing s3:GetObject on object ARN | IAM policy Resource statement |
+| **403 despite broad IAM** | Bucket policy explicit deny | Bucket policy Deny statements |
+| **403 from specific IP** | Bucket policy IP condition | Bucket policy Condition blocks |
+| **403 on KMS-encrypted object** | Missing kms:Decrypt permission | IAM policy + KMS key policy |
+| **403 cross-account** | BPA blocking cross-account | BPA "Block public and cross-account" |
+
+---
+
+### Key Takeaways
+
+**S3 access evaluation order:**
+1. Caller identity confirmed
+2. IAM policy allows action on correct resource ARN
+3. Bucket policy doesn't explicitly deny
+4. BPA doesn't block (mainly for public access scenarios)
+5. KMS permissions if applicable
+
+**Critical ARN distinction:**
+- Bucket operations (ListBucket) → bucket ARN: `arn:aws:s3:::bucket-name`
+- Object operations (GetObject) → object ARN: `arn:aws:s3:::bucket-name/*`
+
+**403 triage workflow:**
+1. Confirm caller identity
+2. Verify IAM allows with correct resource ARN
+3. Check bucket policy for explicit deny or conditions
+4. Check BPA (if public access involved)
+5. Check KMS (if SSE-KMS encryption)
+6. Use CloudTrail to find recent changes
+
+**Public bucket prevention:**
+- Enable BPA (all 4 settings ON)
+- Use "Bucket owner enforced" object ownership
+- Review bucket policies for `Principal: "*"`
+- Use CloudTrail to track permission changes
+
+**Best practices:**
+- Default to BPA enabled
+- Use bucket owner enforced ownership
+- Minimize use of bucket policies (prefer IAM policies)
+- Use SSE-S3 unless KMS required (simpler permissions)
+- Regularly audit for public buckets
+
+---
