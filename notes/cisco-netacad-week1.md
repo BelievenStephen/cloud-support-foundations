@@ -1120,3 +1120,362 @@ Explain the features of an IP address and how IPv4 addresses identify hosts on n
 - Different network portion → requires router
 
 ---
+
+---
+
+## Feb 26, 2026
+
+## Module 9: IPv4 and Network Segmentation
+
+### Module objective
+Explain how IPv4 addresses are used in network communication and segmentation.
+
+**Topics covered:**
+- IPv4 Unicast, Broadcast, and Multicast
+- Types of IPv4 Addresses
+- Network Segmentation
+
+---
+
+### IPv4 Transmission Types
+
+**Three ways to transmit IPv4 packets:**
+
+| Type | Description | Example Use |
+|------|-------------|-------------|
+| **Unicast** | One-to-one communication | Standard client-server communication |
+| **Broadcast** | One-to-all communication | DHCP discovery, ARP requests |
+| **Multicast** | One-to-many (selected group) | Routing protocol updates, streaming |
+
+---
+
+### Unicast Transmission
+
+**Definition:**
+- One device sending a message to one other device
+- Standard form of network communication
+
+**Characteristics:**
+- Destination IP is a unicast address (single recipient)
+- Source IP is always unicast (packet originates from single source)
+- Most network traffic is unicast
+
+**Unicast address range:**
+- `1.1.1.1` to `223.255.255.255`
+- However, many addresses in this range are reserved for special purposes
+
+**Note:** All communication in this course is unicast unless otherwise specified.
+
+---
+
+### Broadcast Transmission
+
+**Definition:**
+- Device sending a message to all devices on the network
+- One-to-all communication
+
+**Characteristics:**
+- Destination IP has all 1s in the host portion
+- All devices in the broadcast domain must process the packet
+
+**Two types of broadcast:**
+
+**1) Limited broadcast:**
+- Address: `255.255.255.255`
+- Sent to all devices on local network
+- Not forwarded by routers
+
+**2) Directed broadcast:**
+- Sent to all hosts on a specific network
+- Example: `172.16.4.255` (all hosts on `172.16.4.0/24`)
+- Router forwards to specific network
+
+**Important:** Routers do not forward broadcasts by default.
+
+**Performance impact:**
+- Broadcasts consume network resources
+- Every host must process broadcast packets
+- Excessive broadcasts degrade network performance
+- Solution: Segment networks to limit broadcast domains
+
+**Note:** IPv6 does not use broadcasts (uses multicast instead).
+
+---
+
+### Multicast Transmission
+
+**Definition:**
+- Host sends single packet to selected group of hosts
+- One-to-many (subscribers only)
+
+**Characteristics:**
+- Destination IP is a multicast address
+- Only subscribed hosts process the packet
+- More efficient than sending multiple unicast packets
+
+**Multicast address range:**
+- IPv4 reserved: `224.0.0.0` to `239.255.255.255`
+
+**How it works:**
+- Hosts subscribe to multicast group
+- Each group has unique multicast IP address
+- Subscribers process packets to that multicast address AND their unicast address
+
+**Example use case:**
+- OSPF routing protocol uses `224.0.0.5`
+- Only OSPF-enabled routers process these packets
+- Other devices ignore them
+
+---
+
+### Public vs Private IPv4 Addresses
+
+**Public addresses:**
+- Globally routable on the internet
+- Must be unique worldwide
+- Assigned by Regional Internet Registries (RIRs)
+- Used for internet-facing resources
+
+**Private addresses (RFC 1918):**
+- Used internally within organizations
+- NOT globally routable
+- Can be reused by different organizations
+- Must be translated to public address to reach internet
+
+**RFC 1918 Private Address Ranges:**
+
+| Network | Address Range | Typical Use |
+|---------|--------------|-------------|
+| `10.0.0.0/8` | `10.0.0.0` - `10.255.255.255` | Large enterprises |
+| `172.16.0.0/12` | `172.16.0.0` - `172.31.255.255` | Medium organizations |
+| `192.168.0.0/16` | `192.168.0.0` - `192.168.255.255` | Home networks, small businesses |
+
+**Note:** Private addresses introduced in mid-1990s due to IPv4 address depletion. Long-term solution is IPv6.
+
+---
+
+### Network Address Translation (NAT)
+
+**Purpose:**
+- Translate private IPv4 addresses to public IPv4 addresses
+- Enables private networks to access the internet
+
+**How it works:**
+1. Internal device (private IP) sends packet to internet
+2. Router (usually at network edge) receives packet
+3. Router translates source IP from private to public
+4. Router forwards packet to ISP with public source IP
+5. Return traffic translated back to private IP
+
+**Key point:** Private addresses cannot be routed on the internet without NAT.
+
+---
+
+### Special Use IPv4 Addresses
+
+**Loopback addresses:**
+- Range: `127.0.0.0/8` (`127.0.0.1` to `127.255.255.254`)
+- Commonly: `127.0.0.1`
+- Purpose: Host directs traffic to itself
+- Use case: Test local IP configuration
+
+**Example:**
+```bash
+ping 127.0.0.1
+# Tests if IP stack is working on local device
+```
+
+**Link-local addresses:**
+- Range: `169.254.0.0/16` (`169.254.0.1` to `169.254.255.254`)
+- Also called: APIPA (Automatic Private IP Addressing)
+- Purpose: Self-assigned when DHCP unavailable
+- Use case: Windows client cannot reach DHCP server
+- Limitation: Can only communicate within local subnet
+
+---
+
+### Legacy Classful Addressing
+
+**Historical context:**
+- Introduced in 1981 (RFC 790)
+- Divided unicast addresses into classes A, B, C
+- Deprecated in mid-1990s due to inefficiency
+
+**Three main classes:**
+
+| Class | Address Range | Network Size | Host Addresses |
+|-------|--------------|--------------|----------------|
+| **A** | `0.0.0.0/8` to `127.0.0.0/8` | Very large | 16+ million per network |
+| **B** | `128.0.0.0/16` to `191.255.0.0/16` | Moderate to large | ~65,000 per network |
+| **C** | `192.0.0.0/24` to `223.255.255.0/24` | Small | 254 per network |
+
+**Additional classes:**
+- **Class D:** `224.0.0.0` to `239.0.0.0` (multicast)
+- **Class E:** `240.0.0.0` to `255.0.0.0` (experimental)
+
+**Why it was deprecated:**
+- Class A and B had too many addresses (wasteful)
+- Class C had too few addresses (limiting)
+- Class A networks were 50% of IPv4 space but mostly unused
+- Replaced by classless addressing (CIDR)
+
+**Modern approach:**
+- Classless addressing (used today)
+- Addresses allocated based on actual need
+- More efficient use of IPv4 address space
+
+---
+
+### IPv4 Address Assignment Hierarchy
+
+**IANA (Internet Assigned Numbers Authority):**
+- Top-level authority for IP address management
+- Allocates blocks to Regional Internet Registries (RIRs)
+
+**Five Regional Internet Registries:**
+- **ARIN:** North America
+- **RIPE NCC:** Europe, Middle East, parts of Asia
+- **APNIC:** Asia Pacific
+- **LACNIC:** Latin America and Caribbean
+- **AfriNIC:** Africa
+
+**Address allocation flow:**
+```
+IANA → RIRs → ISPs → Organizations/Smaller ISPs
+```
+
+**Organizations can also:**
+- Get addresses directly from RIR (subject to RIR policies)
+
+---
+
+### Broadcast Domains and Routers
+
+**Broadcast domain:**
+- Collection of devices that receive broadcast packets
+- Switches propagate broadcasts to all ports (except source port)
+
+**Router behavior:**
+- Routers do NOT forward broadcasts
+- Each router interface connects to separate broadcast domain
+- Broadcast received on one interface is NOT forwarded to other interfaces
+
+**Why this matters:**
+- Routers segment broadcast domains
+- Limits broadcast traffic to specific networks
+- Improves network performance
+
+---
+
+### Problems with Large Broadcast Domains
+
+**Issues with large networks:**
+- Many hosts can generate excessive broadcasts
+- Every device must process every broadcast
+- Results in slow network operations
+- Results in slow device operations
+
+**Example problem:**
+- LAN with 400 users (`172.16.0.0/16`)
+- All 400 users in single broadcast domain
+- High broadcast traffic affects all users
+
+**Solution: Subnetting**
+- Divide large network into smaller subnets
+- Creates smaller broadcast domains
+- Reduces broadcast traffic impact
+
+**Example solution:**
+- Original: `172.16.0.0/16` (400 users)
+- Subnet 1: `172.16.0.0/24` (200 users)
+- Subnet 2: `172.16.1.0/24` (200 users)
+- Broadcast in Subnet 1 does NOT reach Subnet 2
+
+**Key concept:**
+- Longer prefix length = smaller network
+- `/16` changed to `/24` = using host bits for subnets
+
+---
+
+### Benefits of Network Segmentation
+
+**Subnetting advantages:**
+1. **Reduces network traffic:** Limits broadcast propagation
+2. **Improves performance:** Fewer broadcasts per segment
+3. **Enables security policies:** Control which subnets can communicate
+4. **Limits broadcast impact:** Misconfigurations affect smaller group
+
+**Common subnetting strategies:**
+
+**By location:**
+- Building 1: `192.168.1.0/24`
+- Building 2: `192.168.2.0/24`
+- Building 3: `192.168.3.0/24`
+
+**By group/function:**
+- Sales: `10.1.0.0/24`
+- Engineering: `10.2.0.0/24`
+- HR: `10.3.0.0/24`
+
+**By device type:**
+- Workstations: `172.16.1.0/24`
+- Servers: `172.16.2.0/24`
+- Printers: `172.16.3.0/24`
+
+---
+
+### Key Networking Protocols Using Broadcasts
+
+**ARP (Address Resolution Protocol):**
+- Discovers MAC address from known IP address
+- Sends Layer 2 broadcast on local network
+- Essential for Ethernet communication
+
+**DHCP (Dynamic Host Configuration Protocol):**
+- Assigns IP configuration to hosts
+- Client sends broadcast to find DHCP server
+- Server responds with IP address assignment
+
+**Both protocols:**
+- Rely on broadcasts for discovery
+- Confined to broadcast domain (not forwarded by routers)
+
+---
+
+### Key Takeaways
+
+**IPv4 transmission types:**
+- Unicast = one-to-one (most traffic)
+- Broadcast = one-to-all (DHCP, ARP)
+- Multicast = one-to-many subscribers (routing protocols)
+
+**Address categories:**
+- Public = globally routable, must be unique
+- Private = internal use, not routable (10.x, 172.16.x, 192.168.x)
+- Special = loopback (127.x), link-local (169.254.x)
+
+**NAT necessity:**
+- Private addresses cannot reach internet without translation
+- NAT translates private → public at network edge
+
+**Broadcast domains:**
+- Switches propagate broadcasts (all ports)
+- Routers block broadcasts (segment domains)
+- Each router interface = separate broadcast domain
+
+**Network segmentation benefits:**
+- Reduces broadcast traffic
+- Improves performance
+- Enables security policies
+- Limits impact of network issues
+
+**Subnetting basics:**
+- Uses host bits to create smaller networks
+- Longer prefix = smaller network
+- Example: `/16` → `/24` (borrowed 8 host bits)
+
+**Legacy vs modern:**
+- Classful addressing (A, B, C) = deprecated, wasteful
+- Classless addressing (CIDR) = modern, efficient
+
+---
