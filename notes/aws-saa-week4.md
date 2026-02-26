@@ -1732,3 +1732,88 @@ curl -I https://example.com
 - Consider TTL when changes appear "stuck"
 
 ---
+
+### DNS failure triage reps (local terminal)
+
+**Purpose:**  
+Quick terminal-based workflow for verifying DNS resolution, TTL values, name server authority, and end-to-end HTTP access.
+
+---
+
+**Command flow and observations:**
+
+**1. Quick resolution check**
+```bash
+dig example.com +short
+```
+**Result:**  
+`104.18.26.120` and `104.18.27.120` — confirms the domain resolves successfully.
+
+---
+
+**2. Check full A record with TTL**
+```bash
+dig example.com A +noall +answer
+```
+**Result:**  
+TTL shown as `70`. Indicates caches may retain previous results for about 70 seconds.
+
+---
+
+**3. Identify authoritative name servers**
+```bash
+dig example.com NS +noall +answer
+```
+**Result:**  
+`elliott.ns.cloudflare.com.` and `hera.ns.cloudflare.com.` with TTL `86400`.
+
+---
+
+**4. Compare with another domain**
+```bash
+dig amazon.com +short
+```
+**Result:**  
+`98.87.170.71`, `98.87.170.74`, and `98.82.161.185`.  
+A-record TTL: `713`  
+NS records: multiple `*.amazondns.*` servers (TTL `5158`).
+
+---
+
+**5. Validate via nslookup**
+```bash
+nslookup example.com
+```
+**Observation:**  
+Shows local resolver (`192.168.1.1#53`) and a “Non-authoritative answer,” meaning the response came from cache/recursion, not directly from authoritative servers.
+
+---
+
+**6. Confirm HTTP accessibility**
+```bash
+curl -I https://example.com
+```
+**Result:**  
+`HTTP/2 200` confirms DNS and HTTPS handshakes succeed end-to-end.
+
+---
+
+**7. Check redirect behavior**
+```bash
+curl -I https://amazon.com
+```
+**Result:**  
+Returns `HTTP/1.1 301 Moved Permanently` with `Location: https://www.amazon.com/`.  
+Indicates an HTTP redirect, not a DNS failure.
+
+---
+
+**8. Test NXDOMAIN condition**
+```bash
+dig doesnotexist-1772124572.com A
+```
+**Result:**  
+Status `NXDOMAIN`.  
+Classification: **“name/record does not exist.”**
+
+---
