@@ -223,3 +223,330 @@ sudo systemctl restart systemd-resolved
 # Test with curl
 curl -I https://example.com
 ```
+
+---
+
+---
+
+## DNS Failure Classification
+
+Understanding the type of DNS failure helps narrow down the root cause quickly.
+
+### Three Main Failure Types
+
+**1) NXDOMAIN (Name Does Not Exist)**
+```bash
+dig nonexistent.example.com +short
+# Returns: (empty or NXDOMAIN status)
+```
+
+**Meaning:**
+- The name/record does not exist
+- Wrong zone or domain
+- Delegation issue (NS records not configured)
+
+**Common causes:**
+- Typo in domain name
+- Record not created yet
+- Wrong hosted zone queried
+
+---
+
+**2) SERVFAIL (Server Failure)**
+```bash
+dig problematic.example.com +short
+# Returns: (empty with SERVFAIL status)
+```
+
+**Meaning:**
+- DNS server encountered an error processing the query
+- DNSSEC validation failure
+- Resolver or authoritative server misconfiguration
+
+**Common causes:**
+- DNSSEC signature mismatch
+- Broken delegation chain
+- Authoritative server unreachable or misconfigured
+
+---
+
+**3) Timeout (No Response)**
+```bash
+dig example.com +short
+# Hangs or shows: ;; connection timed out; no servers could be reached
+```
+
+**Meaning:**
+- DNS server unreachable
+- Network blocking DNS traffic
+- Firewall blocking UDP/TCP port 53
+
+**Common causes:**
+- Resolver IP wrong or server down
+- Security group/firewall blocking port 53
+- Network path broken to DNS server
+
+---
+
+## Authoritative DNS and Delegation Checks
+
+When DNS resolution fails, verify the domain's authoritative configuration.
+
+### Check Current DNS Answer
+```bash
+# Quick check (IP only)
+dig example.com +short
+
+# Full answer with TTL
+dig example.com A +noall +answer
+```
+
+**Example output:**
+```
+example.com.    300    IN    A    <IP_ADDRESS>
+```
+
+**What to note:**
+- **300** = TTL in seconds (how long resolvers cache this answer)
+- **A** = Record type (IPv4 address)
+- **IP_ADDRESS** = Current resolved value
+
+---
+
+### Check Name Server Delegation
+```bash
+dig example.com NS +noall +answer
+```
+
+**Example output:**
+```
+example.com.    172800    IN    NS    ns-123.awsdns-12.com.
+example.com.    172800    IN    NS    ns-456.awsdns-45.org.
+```
+
+**What this tells you:**
+- Lists authoritative name servers for the domain
+- Verifies delegation is configured
+- If empty, domain delegation may be broken
+
+**TTL meaning:**
+- **172800** seconds (48 hours) = how long resolvers cache the NS records
+- High TTL on NS records is normal and recommended
+
+---
+
+## Compare Public Resolvers
+
+Isolate whether the issue is with a specific resolver or the authoritative DNS.
+
+### Test Multiple Resolvers
+```bash
+# Cloudflare DNS
+dig example.com @1.1.1.1 +short
+
+# Google DNS
+dig example.com @8.8.8.8 +short
+
+# Your local resolver (default)
+dig example.com +short
+```
+
+### Interpretation
+
+| Scenario | Meaning | Next Steps |
+|----------|---------|------------|
+| **All resolvers return same answer** | Authoritative DNS is consistent | If wrong, check hosted zone record |
+| **Resolvers return different answers** | Propagation in progress or cache differences | Wait for TTL expiry, check authoritative source |
+| **Local resolver fails, public works** | Local resolver issue | Check `/etc/resolv.conf`, `systemd-resolved` status |
+| **All resolvers fail** | Authoritative DNS problem | Check hosted zone, NS records, delegation |
+
+---
+
+## Route 53-Specific Checks (If Using Route 53)
+
+### 1) Verify Hosted Zone
+
+**AWS Console → Route 53 → Hosted zones**
+
+**Check:**
+- Correct domain name
+- Zone type (Public or Private)
+- NS records match domain registrar delegation
+
+---
+
+### 2) Verify Record Configuration
+
+**Hosted zones → Select zone → Records**
+
+**Common issues:**
+
+| Problem | Cause | Fix |
+|---------|-------|-----|
+| **NXDOMAIN** | Record doesn't exist | Create A/AAAA/CNAME record |
+| **Wrong IP** | Record value incorrect | Update record value |
+| **CNAME at apex fails** | CNAME not allowed at zone apex | Use ALIAS record instead |
+
+---
+
+### 3) Check Record Type (ALIAS vs CNAME)
+
+**At zone apex (e.g., `example.com`):**
+- ❌ **CNAME:** Not allowed at apex
+- ✅ **ALIAS:** Route 53-specific, works at apex
+- ✅ **A/AAAA:** Standard IP address records
+
+**For subdomains (e.g., `www.example.com`):**
+- ✅ **CNAME:** Points to another DNS name
+- ✅ **ALIAS:** Points to AWS resource
+- ✅ **A/AAAA:** Direct IP address
+
+---
+
+### 4) Consider TTL Strategy
+
+**Current TTL:**
+- Check record TTL in hosted zone
+- Low TTL (60-300s) = faster propagation, more queries
+- High TTL (3600s+) = slower propagation, fewer queries
+
+**Best practice:**
+- Lower TTL before planned DNS changes
+- Raise TTL after changes stabilize
+
+---
+
+### 5) Private Hosted Zone Awareness
+
+**If using private hosted zone:**
+
+**Requirements:**
+- Query must originate from associated VPC
+- VPC DNS resolution enabled
+- VPC DNS hostnames enabled
+
+**Verification:**
+```bash
+# From EC2 instance in VPC
+dig internal.example.com +short
+
+# From outside VPC (will fail)
+dig internal.example.com @8.8.8.8 +short
+# Returns: (empty, NXDOMAIN)
+```
+
+**Console check:**
+- Route 53 → Hosted zones → Select private zone
+- VPCs tab → Verify VPC association
+
+---
+
+## DNS Cache Flushing (Optional)
+
+Sometimes local cache can cause stale DNS results even after fixes.
+
+### Linux (systemd-resolved)
+```bash
+# Flush systemd-resolved cache
+sudo resolvectl flush-caches
+
+# Verify cache cleared
+resolvectl statistics
+```
+
+---
+
+### macOS
+```bash
+# Flush DNS cache (macOS)
+sudo dscacheutil -flushcache
+sudo killall -HUP mDNSResponder
+
+# Verify by re-testing resolution
+dig example.com +short
+```
+
+**Note:** No confirmation message is displayed. Test resolution to verify.
+
+---
+
+### When to Flush Cache
+
+**Flush cache if:**
+- DNS was recently fixed but still showing old answer
+- Testing DNS changes locally
+- Switching between networks/VPNs
+
+**Don't flush if:**
+- Testing propagation (you want to see cached behavior)
+- Diagnosing resolver issues (cache behavior is diagnostic info)
+
+---
+
+## Extended Troubleshooting Reference
+
+### DNS Query Workflow
+```
+Application
+    ↓
+Local resolver cache (systemd-resolved, dscacheutil)
+    ↓
+Recursive resolver (ISP, 1.1.1.1, 8.8.8.8)
+    ↓
+Authoritative name servers (Route 53, etc.)
+    ↓
+DNS record value
+```
+
+**Failure can occur at any layer.**
+
+---
+
+### Diagnostic Command Summary
+```bash
+# Classify failure type
+dig example.com A +noall +answer
+
+# Check delegation
+dig example.com NS +noall +answer
+
+# Test specific resolver
+dig example.com @1.1.1.1 +short
+dig example.com @8.8.8.8 +short
+
+# Check TTL and full answer
+dig example.com A +noall +answer
+
+# Flush local cache (Linux)
+sudo resolvectl flush-caches
+
+# Flush local cache (macOS)
+sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder
+```
+
+---
+
+## Key Takeaways
+
+**DNS failure types:**
+- NXDOMAIN = name/record missing
+- SERVFAIL = server error (DNSSEC, misconfig)
+- Timeout = network/firewall blocking
+
+**Delegation verification:**
+- Check NS records with `dig domain NS`
+- Verify delegation matches registrar settings
+
+**TTL awareness:**
+- Controls cache duration
+- High TTL = slower change propagation
+- Check with `dig domain A +noall +answer`
+
+**Resolver comparison:**
+- Test multiple resolvers (1.1.1.1, 8.8.8.8)
+- Isolates local resolver vs authoritative issues
+
+**Route 53 specifics:**
+- ALIAS at apex (not CNAME)
+- Private zones only work in associated VPCs
+- Verify record type and value in console
