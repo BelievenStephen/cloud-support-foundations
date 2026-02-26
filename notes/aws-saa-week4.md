@@ -1419,3 +1419,316 @@ curl -I https://bucket-name.s3.region.amazonaws.com/object-key
 - Regularly audit for public buckets
 
 ---
+
+## Feb 26, 2026
+
+### Route 53 + DNS Troubleshooting Basics
+
+**Focus:**
+- Understanding Route 53 DNS architecture
+- DNS failure classification and triage
+- Support-focused troubleshooting workflows
+
+---
+
+### Route 53 Core Concepts
+
+**Hosted zone:**
+- Container for DNS records for a domain
+- Two types: public (internet) and private (VPC-only)
+
+**DNS record:**
+- Maps a name to a value (IP address, another name, AWS resource)
+- Key attributes: name, type, value, TTL
+
+**TTL (Time To Live):**
+- Controls how long resolvers cache the answer
+- High TTL = slower propagation of changes
+- Low TTL = more queries to authoritative servers
+
+---
+
+### DNS Record Types
+
+| Record Type | Purpose | Example Value |
+|------------|---------|---------------|
+| **A** | Maps name to IPv4 address | `192.0.2.1` |
+| **AAAA** | Maps name to IPv6 address | `2001:db8::1` |
+| **CNAME** | Points name to another DNS name | `target.example.com` |
+| **ALIAS** | Route 53-specific, points to AWS resource | ALB DNS name, CloudFront distribution |
+
+**Critical limitation:** CNAME cannot be used at zone apex (root domain like `example.com`)
+- **Solution:** Use ALIAS record at apex to point to AWS resources
+
+---
+
+### Public vs Private Hosted Zones
+
+**Public hosted zone:**
+- Serves DNS records on the internet
+- Accessible from anywhere
+- Used for public-facing domains
+
+**Private hosted zone:**
+- Resolves only inside associated VPCs
+- Not accessible from internet
+- Used for internal resource naming
+- Requires VPC association to function
+
+---
+
+### Support Mapping: Domain Resolves to Wrong IP
+
+**Symptom:** Site down or reaching old server after DNS change
+
+**Triage workflow:**
+
+**Step 1: Check current DNS resolution**
+```bash
+dig example.com A +noall +answer
+```
+
+**Expected:** Should show new IP address
+**Actual:** May show old IP due to caching
+
+---
+
+**Step 2: Check TTL and propagation**
+
+**From `dig` output:**
+```
+example.com.    300    IN    A    <OLD_IP>
+```
+
+**TTL value (300 seconds in example):**
+- Resolvers cache the answer for this duration
+- If TTL was high when old record was queried, cache persists
+- Must wait for TTL to expire for new answer to propagate
+
+---
+
+**Step 3: Verify record in Route 53**
+
+**Route 53 Console → Hosted zones → Select zone → Records**
+
+**Check:**
+- Record name (exact match, including subdomains)
+- Record type (A, AAAA, CNAME, ALIAS)
+- Record value (IP or DNS name)
+- TTL setting
+
+**Common mistakes:**
+- Edited wrong record or wrong hosted zone
+- Used CNAME at apex (not allowed, use ALIAS)
+- Typo in record name or value
+
+---
+
+**Step 4: Fix the record**
+- Update record value in correct hosted zone
+- Verify correct record type
+- Consider lowering TTL for next planned change
+
+---
+
+**Step 5: Verify resolution**
+```bash
+# Check from multiple public resolvers
+dig example.com @8.8.8.8 +short
+dig example.com @1.1.1.1 +short
+
+# Test HTTP access
+curl -I https://example.com
+```
+
+---
+
+### Support Mapping: DNS Resolution Fails
+
+**Symptoms:** Domain doesn't resolve or resolves intermittently
+
+**Failure classification:**
+
+| Error Type | Meaning | Common Causes |
+|-----------|---------|---------------|
+| **NXDOMAIN** | Name does not exist | Record missing, wrong zone, typo in name |
+| **SERVFAIL** | DNS server error | DNSSEC issue, resolver misconfiguration, authority problem |
+| **Timeout** | No response from DNS server | Network blocked, resolver unreachable, firewall blocking UDP/TCP 53 |
+
+---
+
+**Troubleshooting workflow:**
+
+**Step 1: Confirm query name**
+- Verify exact domain name (no typos)
+- Verify correct subdomain
+- Check for extra/missing dots
+
+---
+
+**Step 2: Check authoritative name servers**
+```bash
+dig example.com NS +noall +answer
+```
+
+**Expected:** List of NS records pointing to Route 53 name servers
+
+**If no NS records:** Domain delegation may be broken
+
+---
+
+**Step 3: Compare public resolvers**
+```bash
+# Query Google DNS
+dig example.com @8.8.8.8 +short
+
+# Query Cloudflare DNS
+dig example.com @1.1.1.1 +short
+```
+
+**Why this matters:** Helps isolate if issue is with specific resolver or the record itself
+
+---
+
+**Step 4: Verify record in hosted zone**
+
+**Route 53 Console → Hosted zones → Select zone**
+
+**Check:**
+- Record exists
+- Correct record type
+- Correct value
+- If private hosted zone: VPC association configured
+
+---
+
+**Step 5: For private hosted zones, verify VPC access**
+- Confirm querying from inside associated VPC
+- Verify VPC DNS resolution enabled
+- Check security groups allow DNS (UDP/TCP 53)
+
+---
+
+### Resolution Steps by Error Type
+
+**NXDOMAIN (name doesn't exist):**
+1. Create missing record in Route 53
+2. Verify record is in correct hosted zone
+3. Check for typos in record name
+4. Test resolution: `dig example.com +short`
+
+**SERVFAIL (server error):**
+1. Review record configuration for errors
+2. Check DNSSEC settings (if enabled)
+3. Verify authoritative name servers are responsive
+4. Test from multiple resolvers to isolate issue
+
+**Timeout (no response):**
+1. Verify network path to DNS resolver
+2. Check security groups allow UDP/TCP port 53
+3. Verify resolver IP is correct and reachable
+4. Check for firewall rules blocking DNS
+
+---
+
+### Verification
+
+**Successful resolution:**
+```bash
+# Quick check
+dig example.com +short
+# Should return IP address
+
+# Full answer with TTL
+dig example.com A +noall +answer
+
+# Test from multiple resolvers
+dig example.com @8.8.8.8 +short
+dig example.com @1.1.1.1 +short
+```
+
+**Application access:**
+```bash
+# HTTP test
+curl -I https://example.com
+
+# Expected: HTTP 200 or appropriate response
+```
+
+---
+
+### Route 53 Health Checks (Awareness)
+
+**Purpose:**
+- Monitor endpoint availability
+- Support DNS failover routing
+
+**Use cases:**
+- Automatic failover to backup resource
+- Multi-region active-passive setups
+- Health-based routing policies
+
+**Note:** Health checks can be associated with DNS records for automated failover patterns.
+
+---
+
+### DNS Troubleshooting Mindset
+
+**Two-step verification:**
+1. **Verify DNS answer:** Does the name resolve to the correct target?
+2. **Verify application access:** Can you reach the target and get expected response?
+
+**Don't skip step 1:** Many "site down" issues are DNS problems, not application problems.
+
+**Debug order:**
+- DNS resolution (`dig`)
+- Network connectivity (`ping`, `nc`)
+- Application response (`curl`)
+
+---
+
+### Common DNS Troubleshooting Patterns
+
+| Symptom | Root Cause | Fix |
+|---------|-----------|-----|
+| **Old IP after change** | High TTL, cached answer | Wait for TTL expiry, lower TTL for future |
+| **NXDOMAIN for subdomain** | Record doesn't exist | Create A/AAAA/CNAME record |
+| **NXDOMAIN for apex** | Wrong zone or missing record | Verify correct hosted zone, create record |
+| **Works from VPC, fails outside** | Private hosted zone | Create public hosted zone or use VPN |
+| **Works from one resolver, fails from another** | Propagation or resolver cache | Wait for propagation, check resolver health |
+| **Can't use CNAME at apex** | CNAME limitation | Use ALIAS record instead |
+
+---
+
+### Key Takeaways
+
+**Route 53 fundamentals:**
+- Hosted zone contains DNS records
+- Public vs private zones serve different access patterns
+- TTL controls cache duration (affects change propagation)
+
+**DNS record types:**
+- A → IPv4
+- AAAA → IPv6
+- CNAME → Another DNS name (not at apex)
+- ALIAS → AWS resources (works at apex)
+
+**DNS failure classification:**
+- NXDOMAIN = record/name missing
+- SERVFAIL = resolver or authority error
+- Timeout = network or resolver unreachable
+
+**Troubleshooting workflow:**
+1. Use `dig` to classify the failure
+2. Verify record exists and has correct value
+3. Compare results across resolvers (8.8.8.8, 1.1.1.1)
+4. Account for TTL caching
+5. Verify network path if timeout
+
+**Support mindset:**
+- Verify DNS resolves correctly FIRST
+- Then verify routing and HTTP access
+- Use multiple resolvers to isolate issues
+- Consider TTL when changes appear "stuck"
+
+---
