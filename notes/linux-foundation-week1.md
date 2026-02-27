@@ -4685,3 +4685,738 @@ See attached reference guide for comprehensive emacs commands:
   - Once mastered, extremely efficient
 
 ---
+
+## Feb 27, 2026
+
+## Chapter 13: User environment
+
+### Learning objectives
+
+By the end of this chapter, I should be able to:
+- Use and configure user accounts and user groups
+- Use and set environment variables
+- Use the previous shell command history
+- Use keyboard shortcuts
+- Use and define aliases
+- Use and set file permissions and ownership
+
+---
+
+### Identifying the current user
+
+**Linux as multi-user system:**
+- More than one user can log on at same time
+
+**Identify current user:**
+```bash
+whoami
+```
+
+**List currently logged-on users:**
+```bash
+who
+```
+
+**More detailed information:**
+```bash
+who -a
+```
+
+---
+
+### User startup files
+
+**What they do:**
+- Command shell (generally bash) uses startup files to configure user environment
+- Global settings: `/etc` directory (for all users)
+- User-specific: home directory (can include/override global settings)
+
+**Common startup file tasks:**
+- Customize the prompt
+- Define command line shortcuts and aliases
+- Set default text editor
+- Set path for finding executable programs
+
+---
+
+### Order of startup files
+
+**Login shell (first login to Linux):**
+
+**Step 1:** `/etc/profile` read and evaluated first
+
+**Step 2:** Search for these files in order (first found is used, rest ignored):
+1. `~/.bash_profile`
+2. `~/.bash_login`
+3. `~/.profile`
+
+**Note:** `~/` denotes user's home directory
+
+**New shell/terminal window (not full login):**
+- Only `~/.bashrc` file read and evaluated
+- Not read during login shell
+- Most distributions/users include `~/.bashrc` from within one of three user-owned startup files
+
+**Common practice:**
+- Users mostly edit `~/.bashrc`
+- Invoked every time new command line shell starts
+- Or when program launched from terminal window
+- Other files only read when user first logs onto system
+
+**Recent distributions:**
+- Sometimes don't have `.bash_profile` and/or `.bash_login`
+- Some do little more than include `.bashrc`
+
+---
+
+### Creating aliases
+
+**What aliases do:**
+- Create customized commands
+- Modify behavior of existing commands
+
+**Where to place:**
+- Usually in `~/.bashrc` file
+- Available to any command shells you create
+
+**Remove alias:**
+```bash
+unalias <alias_name>
+```
+
+**List current aliases:**
+```bash
+alias
+```
+
+**Important syntax rules:**
+- No spaces on either side of equal sign
+- Alias definition needs quotes if it contains spaces
+
+---
+
+### Basics of users and groups
+
+**User IDs (uid):**
+- All Linux users assigned unique user ID
+- Just an integer
+- Normal users start with uid of 1000 or greater
+
+**Groups:**
+- Collections of accounts with shared permissions
+- Used to establish users with common interests
+- For access rights, privileges, security considerations
+
+**How access works:**
+- Access rights to files/devices granted based on:
+  - User
+  - Group they belong to
+
+**Group membership:**
+- Controlled through `/etc/group` file
+- Shows list of groups and members
+- Every user belongs to default (primary) group
+- When user logs in, group membership set for primary group
+- All members have same level of access and privilege
+- Permissions can be modified at group level
+
+**Group IDs (gid):**
+- Users have one or more group IDs
+- Including default one (same as user ID)
+- Numbers associated with names through:
+  - `/etc/passwd`
+  - `/etc/group`
+
+**Example entries:**
+- `/etc/passwd`: `john:x:1002:1002:John Garfield:/home/john:/bin/bash`
+- `/etc/group`: `john:x:1002`
+
+---
+
+### Adding and removing users
+
+**Graphical interfaces:**
+- Distributions have straightforward GUIs for user/group management
+
+**Command line:**
+- Often useful for scripts
+- Only root user can add/remove users and groups
+
+**Add new user:**
+```bash
+sudo useradd bjmoose
+```
+
+**Default behavior:**
+- Sets home directory to `/home/bjmoose`
+- Populates with basic files (copied from `/etc/skel`)
+- Adds line to `/etc/passwd`: `bjmoose:x:1002:1002::/home/bjmoose:/bin/bash`
+- Sets default shell to `/bin/bash`
+
+**Remove user:**
+```bash
+sudo userdel bjmoose
+```
+- Leaves `/home/bjmoose` directory intact
+- Might be useful for temporary inactivation
+
+**Remove user and home directory:**
+```bash
+sudo userdel -r bjmoose
+```
+
+**Get user information:**
+```bash
+id                    # Current user
+id bjmoose           # Specific user
+```
+
+**Example output:**
+```
+uid=1002(bjmoose) gid=1002(bjmoose) groups=106(fuse),1002(bjmoose)
+```
+
+---
+
+### Adding and removing groups
+
+**Add new group:**
+```bash
+sudo /usr/sbin/groupadd anewgroup
+```
+
+**Remove group:**
+```bash
+sudo /usr/sbin/groupdel anewgroup
+```
+
+**Add user to existing group:**
+
+**Step 1: Check current groups**
+```bash
+groups rjsquirrel
+```
+Output: `rjsquirrel : rjsquirrel`
+
+**Step 2: Add new group**
+```bash
+sudo /usr/sbin/usermod -a -G anewgroup rjsquirrel
+```
+
+**Step 3: Verify**
+```bash
+groups rjsquirrel
+```
+Output: `rjsquirrel: rjsquirrel anewgroup`
+
+**Important:**
+- Use `-a` option for append
+- Avoids removing already existing groups
+- Utilities update `/etc/group` as necessary
+
+**Change group properties:**
+```bash
+groupmod -g <new_gid>        # Change Group ID
+groupmod -n <new_name>       # Change name
+```
+
+**Remove user from group:**
+- Trickier process
+- `-G` option must give complete list of groups
+
+**Example (removes all groups except rjsquirrel):**
+```bash
+sudo /usr/sbin/usermod -G rjsquirrel rjsquirrel
+groups rjsquirrel
+```
+Output: `rjsquirrel : rjsquirrel`
+
+---
+
+### The root account
+
+**Characteristics:**
+- Very powerful
+- Full access to system
+- Called "administrator account" in other OS
+- Often called "superuser account" in Linux
+
+**Important warnings:**
+- Must be extremely cautious before granting full root access
+- Rarely, if ever, justified
+- External attacks often try to elevate to root account
+
+**Alternative: sudo**
+- Assign more limited privileges to user accounts
+- Only on temporary basis
+- Only for specific subset of commands
+
+---
+
+### su and sudo
+
+**su (switch or substitute user):**
+- Launches new shell running as another user
+- Must type password of user you're becoming
+- Most often used to become root
+- New shell allows elevated privileges until exited
+
+**Warning about su:**
+- Almost always bad practice to use `su` to become root
+- Dangerous for security and stability
+- Can result in:
+  - Deletion of vital files
+  - Security breaches
+
+**sudo (preferred method):**
+- Less dangerous than su
+- Must be enabled on per-user basis by default
+- Some distributions (Ubuntu) enable by default for at least one user
+- Or give as installation option
+
+---
+
+### Elevating to root account
+
+**Become superuser for series of commands:**
+```bash
+su
+```
+- Prompted for root password
+
+**Execute just one command with root privilege:**
+```bash
+sudo <command>
+```
+- Return to normal unprivileged user when complete
+
+**sudo configuration:**
+- Files stored in `/etc/sudoers`
+- And in `/etc/sudoers.d/` directory
+- By default, `sudoers.d` directory is empty
+
+---
+
+### Environment variables
+
+**What they are:**
+- Quantities with specific values
+- Used by command shell (bash) or other utilities/applications
+
+**Sources:**
+- Some preset by system (can usually be overridden)
+- Others set by user (command line or within scripts)
+
+**Definition:**
+- Character string containing information used by one or more applications
+
+**View environment variables:**
+```bash
+set
+env
+export
+```
+
+**Note:** `set` may print many more lines than other two methods
+
+---
+
+### Setting environment variables
+
+**Scope:**
+- By default, variables created in script only available to current shell
+- Child processes (sub-shells) don't have access
+- Use `export` command to allow child processes to see values
+
+**Common tasks:**
+
+| Task | Command |
+|------|---------|
+| Show value of specific variable | `echo $SHELL` |
+| Export new variable value | `export VARIABLE=value` or `VARIABLE=value; export VARIABLE` |
+| Add variable permanently | Edit `~/.bashrc` and add line `export VARIABLE=value`, then `source ~/.bashrc` or `. ~/.bashrc` or start new shell with `bash` |
+
+**One-shot environment variables:**
+```bash
+SDIRS="s_0*" KROOT=/lib/modules/$(uname -r)/build make modules_install
+```
+- Feeds values to command for that execution only
+
+---
+
+### The HOME variable
+
+**What it represents:**
+- Home (or login) directory of user
+
+**Usage:**
+```bash
+cd              # Changes to $HOME (no arguments)
+cd ~            # Same as cd $HOME
+```
+
+**Note:** Tilde (`~`) often used as abbreviation for `$HOME`
+
+**Example:**
+
+| Command | Explanation |
+|---------|-------------|
+| `echo $HOME` | Show value of HOME (e.g., `/home/student`) |
+| `cd /bin` | Change directory to `/bin` |
+| `pwd` | Show current directory (displays `/bin`) |
+| `cd` | Change directory with no argument |
+| `pwd` | Shows `/home/student` (back to HOME) |
+
+---
+
+### The PATH variable
+
+**What it is:**
+- Ordered list of directories (the path)
+- Scanned when command given to find appropriate program/script
+- Each directory separated by colons (`:`)
+
+**Null directory:**
+- Empty directory name or `./` indicates current directory
+- Examples:
+  - `:path1:path2` - null directory before first colon
+  - `path1::path2` - null directory between path1 and path2
+
+**Prefix private bin directory to path:**
+```bash
+export PATH=$HOME/bin:$PATH
+echo $PATH
+```
+Output: `/home/student/bin:/usr/local/bin:/usr/bin:/bin/usr`
+
+---
+
+### The SHELL variable
+
+**What it contains:**
+- Points to user's default command shell
+- Program handling whatever you type in command window
+- Usually bash
+- Contains full pathname to shell
+
+**Example:**
+```bash
+echo $SHELL
+```
+Output: `/bin/bash`
+
+---
+
+### The PS1 variable
+
+**What it is:**
+- Prompt Statement (PS)
+- Customizes prompt string in terminal windows
+- Primary prompt variable controlling command line prompt appearance
+
+**Special characters for PS1:**
+
+| Character | Meaning |
+|-----------|---------|
+| `\u` | User name |
+| `\h` | Host name |
+| `\w` | Current working directory |
+| `\!` | History number of this command |
+| `\d` | Date |
+
+**Must be surrounded by single quotes when used**
+
+**Example customization:**
+```bash
+echo $PS1                           # Show current prompt
+export PS1='\u@\h:\w$ '            # Set new prompt
+```
+New prompt: `student@example.com:~$`
+
+**Revert changes:**
+```bash
+export PS1='$ '
+```
+
+**Better practice (save and restore):**
+```bash
+OLD_PS1=$PS1                       # Save old prompt
+# ... make changes ...
+PS1=$OLD_PS1                       # Restore old prompt
+```
+
+---
+
+### Recalling previous commands
+
+**History buffer:**
+- bash keeps track of previously entered commands
+- Stored in history buffer
+
+**Navigate history:**
+- Use Up and Down cursor keys
+
+**View command history:**
+```bash
+history
+```
+- Displays list with most recent command last
+
+**History storage:**
+- Stored in `~/.bash_history`
+- With multiple terminals open, commands not saved until session terminates
+
+---
+
+### History environment variables
+
+**Variables controlling history:**
+
+| Variable | Purpose |
+|----------|---------|
+| `HISTFILE` | Location of history file |
+| `HISTFILESIZE` | Maximum number of lines in history file (default 500) |
+| `HISTSIZE` | Maximum number of commands in history file |
+| `HISTCONTROL` | How commands are stored |
+| `HISTIGNORE` | Which command lines can be unsaved |
+
+**For details:** `man bash`
+
+---
+
+### Finding and using previous commands
+
+**Keyboard shortcuts for history:**
+
+| Key | Usage |
+|-----|-------|
+| Up/Down arrow keys | Browse through previously executed commands |
+| `!!` ("bang-bang") | Execute previous command |
+| `CTRL-R` | Search previously used commands (reverse intelligent search) |
+
+**CTRL-R search:**
+- Start typing, search goes back in reverse order
+- Finds first command matching letters typed
+- Type more letters to make match more specific
+
+**Example:**
+```
+$ ^R                                    (Press CTRL-R)
+(reverse-i-search)'s': sleep 1000      (Searched for 's')
+$ sleep 1000                            (Press Enter to execute)
+```
+
+---
+
+### Executing previous commands
+
+**History substitution syntax:**
+
+| Syntax | Task |
+|--------|------|
+| `!` | Start history substitution |
+| `!$` | Refer to last argument in line |
+| `!n` | Refer to nth command line |
+| `!string` | Refer to most recent command starting with string |
+
+**Example for `!$`:**
+- Command: `ls -l /bin /etc /var`
+- `!$` refers to `/var` (last argument)
+
+**More examples:**
+```bash
+$ history
+1. echo $SHELL
+2. echo $HOME
+3. echo $PS1
+4. ls -a
+5. ls -l /etc/ passwd
+6. sleep 1000
+7. history
+
+$ !1                    # Execute command #1
+echo $SHELL
+/bin/bash
+
+$ !sl                   # Execute command beginning with "sl"
+sleep 1000
+```
+
+---
+
+### Keyboard shortcuts
+
+**Note:** Case of hotkey doesn't matter (CTRL-a = CTRL-A)
+
+| Keyboard Shortcut | Task |
+|-------------------|------|
+| `CTRL-L` | Clear screen |
+| `CTRL-S` | Temporarily halt output to terminal window |
+| `CTRL-Q` | Resume output to terminal window |
+| `CTRL-D` | Exit current shell |
+| `CTRL-Z` | Put current process into suspended background, return to prompt |
+| `CTRL-C` | Kill current process |
+| `CTRL-H` | Works same as backspace |
+| `CTRL-A` | Go to beginning of line |
+| `CTRL-W` | Delete word before cursor |
+| `CTRL-U` | Delete from beginning of line to cursor position |
+| `CTRL-E` | Go to end of line |
+| `Tab` | Auto-complete files, directories, and binaries |
+
+**Note:** Some applications override these (e.g., emacs has other ideas for CTRL-S and CTRL-U)
+
+---
+
+### File ownership
+
+**Ownership in Linux:**
+- Every file associated with user (owner)
+- Every file associated with group (subset of all users)
+- Group has interest in file and certain rights/permissions
+
+**Three permissions:**
+- Read (r)
+- Write (w)
+- Execute (x)
+
+**Utility programs for ownership and permissions:**
+
+| Command | Usage |
+|---------|-------|
+| `chown` | Change user ownership of file or directory |
+| `chgrp` | Change group ownership |
+| `chmod` | Change permissions (can be done separately for owner, group, and others) |
+
+---
+
+### File permission modes and chmod
+
+**Three kinds of permissions:**
+- Read (r), Write (w), Execute (x)
+- Generally represented as `rwx`
+
+**Three groups of owners:**
+- User/owner (u)
+- Group (g)
+- Others (o)
+
+**Result: Three groups of three permissions:**
+```
+rwx: rwx: rwx
+u:   g:   o
+```
+
+**Example using symbolic notation:**
+```bash
+ls -l somefile
+-rw-rw-r-- 1 student student 1601 Mar 9 15:04 somefile
+
+chmod uo+x,g-w somefile
+
+ls -l somefile
+-rwxr--r-x 1 student student 1601 Mar 9 15:04 somefile
+```
+- `u` = user (owner)
+- `o` = other (world)
+- `g` = group
+
+**Numeric notation (shorthand):**
+- Single digit specifies all three permission bits for each entity
+- Digit is sum of:
+  - 4 if read permission desired
+  - 2 if write permission desired
+  - 1 if execute permission desired
+
+**Examples:**
+- 7 = read/write/execute (4+2+1)
+- 6 = read/write (4+2)
+- 5 = read/execute (4+1)
+
+**Using numeric notation:**
+```bash
+chmod 755 somefile
+
+ls -l somefile
+-rwxr-xr-x 1 student student 1601 Mar 9 15:04 somefile
+```
+- Three digits required (one for user, group, other)
+
+---
+
+### Example of chown
+
+**Create files:**
+```bash
+touch file1 file2
+```
+
+**Change owner:**
+```bash
+sudo chown root file2       # Change owner to root (requires sudo)
+```
+
+**Change owner and group together:**
+```bash
+sudo chown root:root file2
+```
+
+**Note:** Only superuser can remove files owned by root
+
+---
+
+### Example of chgrp
+
+**Change group ownership:**
+```bash
+chgrp <groupname> <filename>
+```
+
+---
+
+### Chapter 13 summary
+
+**Key concepts covered:**
+
+- **Multi-user system:**
+  - Linux is multi-user operating system
+  - `who` - find currently logged on users
+  - `whoami` - find current user ID
+
+- **Root account:**
+  - Full access to system
+  - Never sensible to grant full root access to user
+  - Use `sudo` for temporary root privileges on regular accounts
+
+- **Shell startup files:**
+  - bash uses multiple startup files for user environment
+  - Each file affects interactive environment differently
+  - `/etc/profile` provides global settings
+
+- **Startup file advantages:**
+  - Customize user's prompt
+  - Set terminal type
+  - Set command-line shortcuts and aliases
+  - Set default text editor
+
+- **Environment variables:**
+  - Character string containing data used by applications
+  - Built-in shell variables can be customized
+
+- **Command history:**
+  - `history` command recalls previous commands
+  - Can be edited and recycled
+
+- **Keyboard shortcuts:**
+  - Various shortcuts available at command prompt
+  - Replace long actual commands
+
+- **Aliases:**
+  - Customize commands by creating aliases
+  - Add to `~/.bashrc` to make available for other shells
+
+- **File permissions and ownership:**
+  - `chmod permissions filename` - change permissions
+  - `chown owner filename` - change ownership
+  - `chgrp group filename` - change group ownership
+
+---
