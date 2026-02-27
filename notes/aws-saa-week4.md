@@ -1817,3 +1817,402 @@ Status `NXDOMAIN`.
 Classification: **“name/record does not exist.”**
 
 ---
+
+## Feb 27, 2026
+
+### CloudWatch Metrics + Alarms Triage
+
+**Focus:**
+- Understanding CloudWatch metrics, logs, and alarms
+- Alarm state troubleshooting
+- CPU alarm investigation workflow
+
+---
+
+### CloudWatch Core Components Review
+
+**Three distinct components:**
+
+| Component | Description | Example |
+|-----------|-------------|---------|
+| **Metrics** | Numeric time-series data | CPUUtilization: 45% at 10:15 AM |
+| **Logs** | Text-based event records | Application logs, system logs, VPC flow logs |
+| **Alarms** | Stateful checks on metrics | Alert when CPU > 70% for 5 minutes |
+
+**Key distinction:**
+- Metrics = numbers over time
+- Logs = text events
+- Alarms = automated monitoring of metric thresholds
+
+---
+
+### CloudWatch Metrics Organization
+
+**Namespaces:**
+- Group metrics by AWS service
+- Example: `AWS/EC2`, `AWS/S3`, `AWS/RDS`, `AWS/Lambda`
+- Console: CloudWatch → Metrics → All metrics → Browse by namespace
+
+**Dimensions:**
+- Identify specific resources within a namespace
+- Example for EC2: `InstanceId`, `AutoScalingGroupName`, `ImageId`
+
+**Common EC2 metrics location:**
+- CloudWatch Console → Metrics → EC2 → Per-Instance Metrics
+- View: `CPUUtilization`, `NetworkIn`, `NetworkOut`, `DiskReadOps`
+
+---
+
+### Lab Metrics Review
+
+**Lab environment:**
+- Region: us-west-1
+- Instance: `lab-unreachable`
+- Time range: 3 hours
+
+**Metrics observed:**
+- `CPUUtilization` - Shows datapoints (not empty)
+- `NetworkIn` - Network traffic received
+- `NetworkOut` - Network traffic sent
+
+**Graph settings:**
+- **Statistic:** Selectable (Average, Sum, Min, Max, Sample Count)
+- **Default:** Usually Average
+- **Verification:** Check graph settings/legend to confirm statistic
+
+**Key observation:** Metrics flowing = instance is publishing data to CloudWatch
+
+---
+
+### CloudWatch Alarms Deep Dive
+
+**Lab alarm reviewed:**
+- **Name:** `cw-lab-cpu-high`
+- **Region:** us-east-1
+- **Metric:** `CPUUtilization`
+- **Namespace:** `AWS/EC2`
+- **Dimension:** Specific instance ID
+
+**Alarm configuration:**
+- **Threshold:** `> 70%`
+- **Period:** 5 minutes
+- **Datapoints to alarm:** 1 out of 1 (single breach triggers alarm)
+- **Missing data treatment:** Treat missing data as missing
+- **Current state:** INSUFFICIENT_DATA
+
+---
+
+### Alarm States Explained
+
+**Three possible states:**
+
+| State | Meaning | Trigger |
+|-------|---------|---------|
+| **OK** | Metric within threshold | Metric below 70% (in this example) |
+| **ALARM** | Metric breached threshold | Metric above 70% for required datapoints |
+| **INSUFFICIENT_DATA** | Not enough data to evaluate | New alarm, stopped instance, missing datapoints |
+
+**State transitions:**
+- OK → ALARM (metric breaches threshold)
+- ALARM → OK (metric returns to normal)
+- Either → INSUFFICIENT_DATA (datapoints stop arriving)
+
+---
+
+### Missing Data Treatment Options
+
+**Controls alarm behavior when datapoints are missing:**
+
+| Treatment Option | Behavior | Use Case |
+|-----------------|----------|----------|
+| **Treat as missing** | Alarm stays INSUFFICIENT_DATA | Default, conservative approach |
+| **Treat as not breaching** | Alarm transitions to OK | Acceptable to assume OK when no data |
+| **Treat as breaching** | Alarm transitions to ALARM | Absence of data is itself a problem |
+| **Ignore (maintain state)** | Alarm keeps current state | Sparse metrics with expected gaps |
+
+**Why it matters:**
+- Stopped instance = no datapoints
+- "Treat as missing" keeps alarm in INSUFFICIENT_DATA
+- May need different treatment based on use case
+
+---
+
+### CloudWatch Logs Status
+
+**Location:** CloudWatch Console → Logs → Log groups
+
+**Current lab status:** No log groups
+
+**Why:**
+- EC2 instances do NOT send logs to CloudWatch Logs by default
+- Requires CloudWatch agent installation and configuration
+- Or application-level integration (Lambda, ECS, etc.)
+
+---
+
+### Support Mapping: CPU High Alarm
+
+**Symptom:** CloudWatch alarm for `CPUUtilization` goes to ALARM state
+
+**Triage workflow:**
+
+**Step 1: Confirm alarm accuracy**
+
+**Verify instance state:**
+- EC2 Console → Instances → Check instance is running
+- Stopped instance won't trigger accurate CPU alarms
+
+**Verify alarm configuration:**
+- CloudWatch Console → Alarms → Select alarm
+- Check: Correct instance ID in dimensions
+- Check: Threshold makes sense (e.g., `> 70%`)
+
+---
+
+**Step 2: Analyze the alarm graph**
+
+**Open alarm details:**
+- Alarm → Metrics tab
+- Set appropriate time range (last 1h, 3h, 24h)
+- Verify spike is real and sustained
+
+**Look for patterns:**
+- Single spike vs sustained high CPU
+- Time of day patterns
+- Correlation with deployments or changes
+
+---
+
+**Step 3: Check related metrics**
+
+**Additional metrics to review:**
+- `NetworkIn` / `NetworkOut` - High network traffic?
+- `DiskReadOps` / `DiskWriteOps` - Disk I/O spike?
+- `StatusCheckFailed` - Instance or system issues?
+
+**Why:** Helps identify root cause (network load, disk I/O, application issue)
+
+---
+
+**Step 4: Investigate on the instance**
+
+**SSH to instance and check processes:**
+```bash
+# Real-time monitoring
+top
+
+# Sort by CPU (Shift+P in top)
+# Identify top consumers
+
+# Detailed process list
+ps aux --sort=-%cpu | head -20
+```
+
+**Common findings:**
+- Application process consuming high CPU
+- Runaway process or memory leak
+- Background tasks or cron jobs
+- Malicious activity (rare)
+
+---
+
+**Step 5: Resolution options**
+
+| Scenario | Action |
+|----------|--------|
+| **Legitimate workload spike** | No action, monitor if acceptable |
+| **Sustained high load** | Right-size instance (larger type) or optimize application |
+| **Runaway process** | Restart process, investigate root cause |
+| **Scheduled job** | Reschedule or optimize job |
+| **Under-provisioned** | Scale up instance type or implement Auto Scaling |
+
+---
+
+**Verification:**
+- CPU usage drops to normal levels
+- CloudWatch alarm returns to OK state
+- Application performance stable
+
+---
+
+### Support Mapping: Alarm Stuck in INSUFFICIENT_DATA
+
+**Symptom:** Alarm state is INSUFFICIENT_DATA or graph shows no data
+
+**Triage workflow:**
+
+**Step 1: Check instance state**
+```
+EC2 Console → Instances → Instance state
+```
+
+**Common causes:**
+- Instance is stopped (most common)
+- Instance is terminated
+- Instance just launched (still initializing)
+
+**If stopped/terminated:** No metrics are published, alarm will stay INSUFFICIENT_DATA
+
+---
+
+**Step 2: Verify time range**
+
+**Check graph time range:**
+- Alarm → Metrics tab
+- Verify viewing appropriate time window
+- Expand range if needed (e.g., 1h to 24h)
+
+**Recent datapoints:**
+- Look for when last datapoint appeared
+- Gap in data = instance stopped or metric not publishing
+
+---
+
+**Step 3: Review missing data treatment**
+
+**Current setting:**
+- Alarm details → Configuration
+- Check "Missing data treatment"
+
+**If "Treat as missing":**
+- Alarm stays INSUFFICIENT_DATA when no datapoints
+- May need to change to "Treat as not breaching" if acceptable
+
+---
+
+**Step 4: Verify alarm dimensions**
+
+**Check metric configuration:**
+- Alarm → Metrics tab
+- Verify dimensions match target resource
+
+**Common mistakes:**
+- Wrong `InstanceId` dimension
+- Alarm pointing to terminated instance
+- Typo in dimension value
+
+---
+
+**Step 5: Resolution options**
+
+| Cause | Fix |
+|-------|-----|
+| **Instance stopped** | Start instance, wait 5-10 minutes for datapoints |
+| **Wrong instance ID** | Edit alarm dimensions to correct instance |
+| **Missing data treatment** | Change to "Treat as not breaching" if appropriate |
+| **New instance** | Wait for metrics to start flowing (5-10 minutes) |
+| **Metric not enabled** | Enable detailed monitoring (1-minute intervals) |
+
+---
+
+**Verification:**
+- Alarm receives datapoints (graph shows data)
+- Alarm state becomes OK or ALARM (not INSUFFICIENT_DATA)
+- State matches actual resource condition
+
+---
+
+### Alarm Design Best Practices
+
+**Evaluation period considerations:**
+
+**Single datapoint (`1 out of 1`):**
+- Sensitive to brief spikes
+- May trigger false alarms
+- Use for critical, instant failures
+
+**Multiple datapoints (`3 out of 5`):**
+- Reduces false positives
+- Requires sustained condition to trigger
+- Better for gradual issues (CPU, memory)
+
+---
+
+**Missing data strategy:**
+
+**Choose based on use case:**
+- **Critical monitoring:** Treat missing as breaching (absence is a problem)
+- **General monitoring:** Treat as missing (conservative)
+- **Sparse metrics:** Treat as not breaching or ignore (maintain state)
+- **Development/test:** Treat as not breaching (reduce noise)
+
+---
+
+**Threshold selection:**
+
+**Consider workload patterns:**
+- Normal baseline (e.g., CPU typically 20-30%)
+- Expected peak (e.g., during batch jobs: 60-70%)
+- Set threshold above expected peak with buffer
+- Example: If peak is 70%, set alarm at 80-85%
+
+---
+
+### Metric Availability and Intervals
+
+**Default EC2 metrics:**
+- Published at 5-minute intervals (basic monitoring)
+- Free, automatically enabled
+- Sufficient for most use cases
+
+**Detailed monitoring:**
+- Published at 1-minute intervals
+- Costs extra (per instance per month)
+- Faster detection of issues
+
+**Enable detailed monitoring:**
+- EC2 Console → Instance → Monitoring → Manage detailed monitoring
+- Or at launch time in launch configuration
+
+---
+
+### Common CloudWatch Alarm Issues
+
+| Symptom | Root Cause | Fix |
+|---------|-----------|-----|
+| **Alarm always INSUFFICIENT_DATA** | Instance stopped or wrong dimension | Verify instance running, check dimension |
+| **Alarm never triggers** | Threshold too high or wrong statistic | Lower threshold or change statistic |
+| **Too many false alarms** | Single datapoint evaluation | Change to multiple datapoints (e.g., 3 out of 5) |
+| **Alarm triggers during maintenance** | No maintenance window configured | Disable alarm during maintenance or adjust treatment |
+| **No graph data** | Wrong region or wrong namespace | Verify region matches resource, check namespace |
+
+---
+
+### Key Takeaways
+
+**CloudWatch components:**
+- Metrics = numeric time-series (CPU, network, disk)
+- Logs = text events (requires agent or service integration)
+- Alarms = automated metric threshold monitoring
+
+**Alarm states:**
+- OK = within threshold
+- ALARM = breached threshold
+- INSUFFICIENT_DATA = not enough data to evaluate
+
+**CPU high alarm triage:**
+1. Confirm instance running and alarm configuration correct
+2. Analyze alarm graph for spike patterns
+3. Check related metrics (network, disk)
+4. SSH to instance, identify top CPU processes
+5. Take action: optimize app, restart process, or scale up
+
+**INSUFFICIENT_DATA troubleshooting:**
+1. Check instance state (stopped/terminated most common)
+2. Verify time range shows expected data window
+3. Review missing data treatment setting
+4. Confirm alarm dimensions match target resource
+5. Fix and verify datapoints start flowing
+
+**Missing data treatment:**
+- "Treat as missing" = stays INSUFFICIENT_DATA (conservative)
+- "Treat as not breaching" = transitions to OK (acceptable assumption)
+- Choose based on whether absence of data is significant
+
+**Best practices:**
+- Use multiple datapoints for gradual issues (3 out of 5)
+- Set thresholds above expected peak with buffer
+- Configure appropriate missing data treatment
+- Enable detailed monitoring only when needed (cost vs benefit)
+
+---
