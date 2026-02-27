@@ -2216,3 +2216,105 @@ EC2 Console → Instances → Instance state
 - Enable detailed monitoring only when needed (cost vs benefit)
 
 ---
+
+## Feb 27, 2026 (continued)
+
+### Lab Exercise: CPU Alarm Trigger and Recovery
+
+**Lab objective:** Create and test CPU alarm with synthetic load
+
+**Environment:**
+- Region: us-west-1
+- Instance: `lab-unreachable`
+- Metric: `CPUUtilization`
+
+---
+
+### Alarm Configuration
+
+**Created CloudWatch alarm:**
+- **Metric:** `CPUUtilization`
+- **Namespace:** `AWS/EC2`
+- **Dimension:** Instance ID for `lab-unreachable`
+- **Threshold:** `>= 10%`
+- **Period:** 1 minute
+- **Datapoints to alarm:** 1 out of 1 (immediate trigger)
+
+**Initial state:** INSUFFICIENT_DATA (expected until first metrics arrive)
+
+---
+
+### Testing Workflow
+
+**Step 1: Wait for baseline metrics**
+- Alarm transitioned to OK state
+- Indicates metrics are flowing
+- Baseline CPU observed (idle state)
+
+---
+
+**Step 2: Generate CPU load**
+```bash
+# SSH to instance
+ssh -i <key.pem> ec2-user@<INSTANCE_IP>
+
+# Generate CPU load (runs in background)
+yes > /dev/null &
+```
+
+**Duration:** ~60-90 seconds
+
+---
+
+**Step 3: Observe alarm trigger**
+- CloudWatch metric graph showed CPU spike
+- Alarm state changed: OK → ALARM
+- Typical delay: 1-2 minutes (metric collection + evaluation)
+
+---
+
+**Step 4: Stop CPU load**
+```bash
+# Kill the load process
+killall yes
+
+# Verify processes stopped
+ps aux | grep yes
+```
+
+---
+
+**Step 5: Verify alarm recovery**
+- CPU returned to baseline on graph
+- Alarm state changed: ALARM → OK
+- Typical recovery time: 1-2 minutes
+
+---
+
+### Cleanup
+
+**Cost control steps:**
+1. Deleted CloudWatch alarm
+2. Stopped EC2 instance
+3. Verified no other running resources
+
+---
+
+### Key Observations
+
+**Alarm behavior:**
+- INSUFFICIENT_DATA = waiting for first datapoint
+- State transitions work as expected
+- 1-minute period provides fast detection
+
+**CPU load generation:**
+- `yes > /dev/null &` reliably generates load
+- Single core saturated (multi-core instances may need multiple processes)
+- `killall yes` cleanly stops load
+
+**Verification importance:**
+- Always test alarm triggers before production use
+- Confirms metric collection and threshold settings correct
+- Validates notification path (if configured)
+
+---
