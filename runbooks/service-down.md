@@ -34,6 +34,235 @@ Gather this information before making any changes:
 
 ---
 
+## CloudWatch-First Triage (Before Touching the Host)
+
+**Why check CloudWatch first:**
+- Provides historical context (when issue started, what changed)
+- Shows trends vs single data points
+- Helps classify issue type before SSH access
+- Avoids making changes without understanding the problem
+
+**Critical:** Verify you're in the correct AWS region before investigating.
+
+---
+
+### 1) Check CloudWatch Alarms
+
+**CloudWatch Console → Alarms → All alarms**
+
+**Look for:**
+- Alarms in **ALARM** state (red)
+- Alarms in **INSUFFICIENT_DATA** state (gray)
+- Recent state changes in alarm history
+
+**For each alarm, verify:**
+- **Metric + Dimension:** Confirm correct resource (e.g., InstanceId for EC2)
+- **Threshold:** What value triggers alarm
+- **Period:** Time window for evaluation
+- **Datapoints to alarm:** How many breaches needed to trigger
+- **Missing data treatment:** How alarm handles gaps in data
+- **Alarm history:** When state changed, previous states
+
+---
+
+**Alarm state interpretation map:**
+
+| Alarm State | Metric | Next Steps |
+|------------|--------|------------|
+| **ALARM** | `CPUUtilization` | High load/saturation path → See on-host CPU investigation |
+| **ALARM** | `StatusCheckFailed` | Instance health issue → Check EC2 status checks |
+| **ALARM** | Custom metric | Service-specific issue → Check application logs/metrics |
+| **INSUFFICIENT_DATA** | Any metric | Metrics not arriving → Verify instance state, region, dimension |
+
+---
+
+### 2) Review Metrics (Trend vs Spike)
+
+**CloudWatch Console → Metrics → All metrics → AWS/EC2 → Per-Instance Metrics**
+
+**Key metrics to check:**
+- `CPUUtilization`
+- `NetworkIn` / `NetworkOut`
+- `StatusCheckFailed`
+- `StatusCheckFailed_Instance`
+- `StatusCheckFailed_System`
+
+**Time range selection:**
+- Use range that covers incident window
+- Typical ranges: 1h, 3h, 12h, 24h
+- Look for when abnormal behavior started
+
+---
+
+**Metric pattern interpretation:**
+
+| Pattern | Likely Cause | Investigation Path |
+|---------|--------------|-------------------|
+| **High CPU + High Network** | Traffic spike or busy service | Check access logs, scale if needed |
+| **High CPU + Low Network** | Runaway process or internal job | SSH to host, identify top CPU processes |
+| **Flatline / Gaps** | Instance stopped, wrong region, metric delay | Verify instance running, check region/dimension |
+| **Gradual climb** | Memory leak or growing workload | Check memory, investigate application |
+| **Sudden drop to zero** | Instance stopped/terminated | Check EC2 console for instance state |
+
+---
+
+### 3) Check CloudWatch Logs (If Configured)
+
+**CloudWatch Console → Logs → Log groups**
+
+**If log groups exist:**
+- Filter by time range around incident
+- Search for ERROR, WARN, FATAL patterns
+- Look for application stack traces
+- Check for configuration errors
+
+**If no log groups:**
+- EC2 instances do NOT send logs by default
+- Requires CloudWatch agent installation or service integration
+- Fall back to on-host log investigation (`journalctl`, `/var/log`)
+
+---
+
+### 4) Map CloudWatch Results to Next Steps
+
+**Based on CloudWatch findings, choose investigation path:**
+
+---
+
+**A) No data / INSUFFICIENT_DATA**
+
+**Checks:**
+1. EC2 Console → Verify instance is running
+2. CloudWatch alarm → Verify correct InstanceId dimension
+3. CloudWatch alarm → Verify correct region
+4. Check time range and missing data treatment
+
+**Common causes:**
+- Instance stopped or terminated
+- Wrong dimension (old instance ID)
+- Viewing wrong region
+- Recent launch (metrics not yet available)
+
+---
+
+**B) CPU High (Above Threshold)**
+
+**Immediate checks:**
+- Review metric graph for sustained vs brief spike
+- Check NetworkIn/Out for correlation
+- Note exact time of spike
+
+**Next steps:**
+1. SSH to instance
+2. Run `top` to identify processes
+3. Run `ps aux --sort=-%cpu | head -20`
+4. Consider scaling or load reduction if sustained
+
+**Do NOT restart service yet** - identify root cause first
+
+---
+
+**C) Status Check Failed**
+
+**EC2 Console → Instances → Status checks tab**
+
+**Identify which check failed:**
+
+| Check Type | Meaning | Resolution |
+|-----------|---------|------------|
+| **System check** | AWS infrastructure issue | Stop and start instance (migrates to new host) |
+| **Instance check** | Guest OS or config issue | Investigate on host (logs, disk, memory) |
+| **Both** | Multiple issues | Start with system check resolution |
+
+**Status check troubleshooting:**
+- System: Hardware, network, power (AWS responsibility)
+- Instance: OS kernel, filesystem, networking config (your responsibility)
+
+---
+
+**D) Normal Metrics But Service Down**
+
+**If CloudWatch shows healthy but service is down:**
+- CloudWatch metrics are instance-level, not service-level
+- Issue is likely application/service specific
+- Proceed to "Fast Checks" section for service-level investigation
+
+---
+
+### 5) Verify Recovery (CloudWatch + Endpoint Test)
+
+**After implementing fix, confirm recovery in order:**
+
+---
+
+**1) CloudWatch alarm returns to OK:**
+```
+CloudWatch → Alarms → Select alarm → Check current state
+```
+**Expected:** State changes from ALARM to OK
+
+**Review alarm history:**
+- Confirms state transition time
+- Provides recovery timestamp
+
+---
+
+**2) Metrics show normal trend:**
+```
+CloudWatch → Metrics → Review metric graph
+```
+**Expected:** Metric returns to baseline or expected range
+
+---
+
+**3) Endpoint responds successfully:**
+```bash
+curl -sv --max-time 5 http://<server-ip-or-hostname>:<port> -o /dev/null
+```
+**Expected:** HTTP response headers (200/301/etc)
+
+---
+
+**4) Health check endpoint (if available):**
+```bash
+curl -sf http://<server-ip-or-hostname>:<port>/health && echo OK
+```
+**Expected:** Successful response with health status
+
+---
+
+**5) Service logs show no errors:**
+```bash
+sudo journalctl -u <service> --since "10 min ago" --no-pager | tail -n 50
+```
+**Expected:** No errors, warnings, or restart loops
+
+---
+
+## CloudWatch Investigation Tips
+
+**Region verification:**
+- CloudWatch is region-scoped
+- Instance in us-west-1 won't show metrics in us-east-1 console
+- Verify region selector in console matches instance region
+
+**Metric delay awareness:**
+- Standard monitoring: 5-minute intervals
+- Detailed monitoring: 1-minute intervals
+- Allow 5-10 minutes for new datapoints to appear
+
+**Alarm history usage:**
+- Shows when alarm changed state
+- Provides timeline of incident
+- Useful for correlating with changes/deployments
+
+**Missing data vs zero:**
+- Missing data = no datapoints (instance stopped, metric not publishing)
+- Zero value = datapoint received with value of 0
+- Check "Missing data treatment" setting in alarm
+
+---
+
 ## Fast Checks (Do in Order)
 
 ### 1) Confirm the service state (systemd)
