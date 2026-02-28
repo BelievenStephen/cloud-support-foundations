@@ -2318,3 +2318,307 @@ ps aux | grep yes
 - Validates notification path (if configured)
 
 ---
+
+## Feb 28, 2026
+
+### VPC Routing + No Internet Access Triage
+
+**Focus:**
+- Understanding public vs private subnets
+- Internet connectivity troubleshooting
+- Route table analysis workflow
+
+---
+
+### Lab Environment Review
+
+**Instance networking:**
+- Region: us-west-1
+- Availability Zone: us-west-1c
+- VPC: `vpc-<VPC_ID>`
+- Subnet: `subnet-<SUBNET_ID>`
+- Public IPv4: `<INSTANCE_PUBLIC_IP>`
+- VPC CIDR: `172.31.0.0/16`
+
+---
+
+### Public vs Private Subnet Determination
+
+**Definitive proof:**
+- Route table's `0.0.0.0/0` target determines subnet type
+- NOT the subnet name, auto-assign setting, or instance public IP
+
+**Decision matrix:**
+
+| Default Route (`0.0.0.0/0`) | Subnet Type | Internet Access |
+|----------------------------|-------------|-----------------|
+| `→ igw-...` | Public | Direct egress via IGW |
+| `→ nat-...` | Private | Outbound-only via NAT |
+| (none) | Private | No internet access |
+
+---
+
+### Lab Subnet Classification Process
+
+**Step 1: Identify instance subnet**
+- EC2 Console → Instance → Networking tab
+- Note: `subnet-<SUBNET_ID>`
+
+**Step 2: Find route table association**
+- VPC Console → Subnets → Select subnet
+- Note: Route table `rtb-<ROUTE_TABLE_ID>`
+
+**Step 3: Check default route**
+- VPC Console → Route tables → Select route table
+- Find `0.0.0.0/0` destination
+
+**Lab result:**
+- Route: `0.0.0.0/0 → igw-<IGW_ID>`
+- **Classification:** Public subnet
+
+---
+
+### Supporting Signals (Not Proof)
+
+**Subnet settings:**
+- Auto-assign public IPv4: Yes
+- Supports public subnet pattern (but not definitive)
+
+**Instance has public IP:**
+- Instance: `<INSTANCE_PUBLIC_IP>`
+- Typical for public subnet instances
+- But possible to have public IP in private subnet with IGW route
+
+**Internet Gateway attached:**
+- VPC has IGW: `igw-<IGW_ID>`
+- Required for both public subnets AND NAT Gateway egress
+
+---
+
+### Support Mapping: EC2 Has No Internet Access
+
+**Symptoms:**
+- `curl https://example.com` fails
+- Package installs fail (`apt`, `yum`)
+- API calls timeout
+
+---
+
+**Troubleshooting workflow:**
+
+**Step 1: Verify instance and region**
+- Confirm instance is running
+- Verify working in correct AWS region
+
+---
+
+**Step 2: Identify instance subnet**
+```
+EC2 Console → Instance → Networking tab → Subnet ID
+```
+
+---
+
+**Step 3: Find subnet's route table**
+```
+VPC Console → Subnets → Select subnet → Route table tab
+```
+
+---
+
+**Step 4: Classify default route**
+```
+VPC Console → Route tables → Select route table → Routes tab
+```
+
+**Look for `0.0.0.0/0` destination:**
+
+| Target | Meaning | Requirements |
+|--------|---------|--------------|
+| `igw-...` | Public subnet | Instance needs public IPv4 or EIP |
+| `nat-...` | Private subnet with NAT | NAT must be in public subnet, have EIP |
+| (missing) | No internet path | Need to add route |
+
+---
+
+**Step 5: Verify public IP (if IGW route)**
+
+**For IGW-based egress:**
+- Instance must have public IPv4 OR Elastic IP
+- EC2 Console → Instance → Networking tab → Public IPv4 address
+
+**If missing public IP:**
+- Option A: Assign Elastic IP
+- Option B: Change to private subnet with NAT
+
+---
+
+**Step 6: Check Security Group outbound**
+```
+EC2 Console → Instance → Security tab → Security groups → Outbound rules
+```
+
+**Required:**
+- Allow HTTPS (TCP 443) to `0.0.0.0/0`
+- Allow HTTP (TCP 80) if needed
+
+**Default:** All traffic allowed outbound
+
+---
+
+**Step 7: If using NAT Gateway, verify NAT**
+
+**NAT Gateway requirements:**
+- Must exist in a public subnet
+- Must have Elastic IP attached
+- Must be in "Available" state
+- NAT's subnet must have `0.0.0.0/0 → IGW` route
+
+**Check NAT Gateway:**
+```
+VPC Console → NAT Gateways → Verify state and subnet
+```
+
+---
+
+**Step 8: Additional checks (if still failing)**
+
+**NACL rules:**
+- VPC Console → Network ACLs
+- Check outbound rules allow 443 (and 80)
+- Check inbound ephemeral ports (1024-65535) for return traffic
+
+**DNS resolution:**
+```bash
+dig example.com +short
+```
+- Should return IP addresses
+- If fails, DNS resolver issue
+
+---
+
+### Resolution Options
+
+**Scenario A: Intended public subnet**
+1. Ensure route table has `0.0.0.0/0 → igw-...`
+2. Ensure instance has public IPv4 or Elastic IP
+3. Verify Security Group allows outbound 443/80
+4. Verify NACL allows bidirectional traffic
+
+**Scenario B: Intended private subnet**
+1. Remove public IPv4 expectation
+2. Ensure route table has `0.0.0.0/0 → nat-...`
+3. Verify NAT Gateway exists and is healthy
+4. Verify NAT is in public subnet with IGW route
+
+**Scenario C: Misconfigured subnet**
+1. Move instance to correct subnet
+2. Or change route table association to match intent
+
+---
+
+### Verification
+
+**Test DNS resolution:**
+```bash
+dig example.com +short
+```
+**Expected:** IP addresses returned
+
+**Test HTTPS connectivity:**
+```bash
+curl -I https://example.com
+```
+**Expected:** HTTP response headers
+
+**Monitor CloudWatch metrics:**
+- EC2 Console → Instance → Monitoring
+- `NetworkOut` should increase during tests
+
+---
+
+### IGW vs NAT Gateway
+
+**Internet Gateway (IGW):**
+- Enables direct internet routing
+- Used by public subnets
+- Provides both inbound and outbound connectivity
+- Attached at VPC level
+
+**NAT Gateway:**
+- Enables outbound-only internet access
+- Used by private subnets
+- Blocks inbound initiated connections
+- Must be placed in public subnet
+- Requires Elastic IP
+
+**Key distinction:**
+- IGW = bidirectional (public subnet)
+- NAT = outbound-only (private subnet)
+
+---
+
+### Common Connectivity Issues
+
+| Symptom | Root Cause | Fix |
+|---------|-----------|-----|
+| **Curl times out** | No route to internet | Add `0.0.0.0/0` route to IGW or NAT |
+| **Public subnet, no internet** | Missing public IP | Assign Elastic IP or enable auto-assign |
+| **Private subnet, no internet** | NAT missing or misconfigured | Create NAT in public subnet |
+| **DNS fails, curl works to IP** | DNS resolver issue | Check VPC DNS settings |
+| **Intermittent connectivity** | NAT Gateway unhealthy | Check NAT state, consider redundant NAT |
+
+---
+
+### Diagnostic Commands
+
+**On instance:**
+```bash
+# Test DNS resolution
+dig example.com +short
+
+# Test HTTPS connectivity
+curl -I https://example.com
+
+# Test HTTP connectivity
+curl -I http://example.com
+
+# Check default route (Linux)
+ip route | grep default
+
+# Check DNS resolver
+cat /etc/resolv.conf
+```
+
+---
+
+### Key Takeaways
+
+**Subnet classification:**
+- Route table's `0.0.0.0/0` target is definitive proof
+- IGW = public subnet
+- NAT = private subnet with outbound
+- No default route = isolated subnet
+
+**Internet connectivity requirements:**
+- Public subnet: IGW route + public IP/EIP + SG allows outbound
+- Private subnet: NAT route + NAT in public subnet + SG allows outbound
+
+**Troubleshooting order:**
+1. Identify subnet ID
+2. Check route table default route
+3. Verify public IP (if IGW) or NAT (if NAT route)
+4. Check Security Group outbound
+5. Check NACL rules
+6. Test DNS resolution
+
+**DNS vs routing:**
+- `dig` working ≠ routing working
+- DNS resolves names, routing moves packets
+- Test both independently
+
+**IGW is required for:**
+- Public subnet direct internet access
+- NAT Gateway internet access (NAT must be in public subnet)
+
+---
