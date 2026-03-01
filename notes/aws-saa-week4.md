@@ -2622,3 +2622,111 @@ cat /etc/resolv.conf
 - NAT Gateway internet access (NAT must be in public subnet)
 
 ---
+
+## Feb 28, 2026 (continued on March 1)
+
+### Lab Exercise: Security Group Outbound Blocking
+
+**Objective:** Demonstrate impact of Security Group outbound rules on internet access
+
+---
+
+### Baseline Verification
+
+**Established working state:**
+```bash
+# Test HTTPS connectivity
+curl -I https://example.com
+# Result: HTTP 200/301 (successful)
+
+# Test DNS resolution
+dig example.com +short
+# Result: IP addresses returned
+```
+
+**Baseline confirmed:** Instance has functional internet access
+
+---
+
+### Breaking Change Applied
+
+**Action taken:**
+- Removed default outbound rule from Security Group
+- Security Group: `sg-<SECURITY_GROUP_ID>`
+- Original rule: All traffic to `0.0.0.0/0`
+- Result: No outbound rules present
+
+---
+
+### Testing After Change
+
+**HTTPS test:**
+```bash
+curl -I --max-time 5 https://example.com
+# Result: Connection timeout
+```
+
+**DNS test:**
+```bash
+dig example.com +short
+# Result: IP addresses still returned
+```
+
+**Key observation:** DNS resolution continued to work while HTTPS was blocked
+
+---
+
+### Why DNS Still Worked
+
+**Explanation:**
+- DNS uses UDP/TCP port 53
+- VPC DNS resolver operates differently than standard internet traffic
+- Security Group blocks HTTPS (TCP 443) but may not block VPC DNS
+- Demonstrates: DNS resolution ≠ internet connectivity
+
+---
+
+### Resolution Applied
+
+**Restored original configuration:**
+- Added back: All traffic to `0.0.0.0/0` (outbound rule)
+- Security Group returned to baseline state
+
+**Verification:**
+```bash
+curl -I https://example.com
+# Result: Successful (HTTP 200/301)
+```
+
+**Outcome:** Internet access restored
+
+---
+
+### Cleanup Verification
+
+**Final checks:**
+- Security Group outbound rules match original configuration
+- No restrictive rules remaining
+- Instance maintains functional internet access
+
+---
+
+### Key Observations
+
+**Security Group outbound impact:**
+- Removing outbound rules immediately blocks egress
+- Effect is instant (no propagation delay)
+- DNS may still work due to VPC resolver architecture
+
+**Troubleshooting lesson:**
+- Always verify DNS AND actual connectivity separately
+- `dig` success doesn't guarantee application access
+- Test the actual protocol/port needed (HTTPS, HTTP, SSH, etc.)
+
+**Recovery pattern:**
+- Document original configuration before changes
+- Test impact immediately after change
+- Restore exact original configuration
+- Verify restoration with same tests
+
+---
