@@ -5420,3 +5420,745 @@ chgrp <groupname> <filename>
   - `chgrp group filename` - change group ownership
 
 ---
+
+## Mar 1, 2026
+
+## Chapter 14: Manipulating text
+
+### Learning objectives
+
+By the end of this chapter, I should be able to:
+- Display and append to file contents using cat and echo
+- Edit and print file contents using sed and awk
+- Search for patterns using grep
+- Use multiple other utilities for file and text manipulation
+
+---
+
+### Command line tools for manipulating text files
+
+**Why command line matters:**
+- Common need: browse, parse, extract data from text files
+- Essential skill for system administrators, developers, users
+- Command line more efficient than GUI for file manipulation
+- More suitable for automating often-executed tasks
+
+**Scripting:**
+- Experienced administrators write customized scripts
+- Standardized for particular environment
+- Will be discussed in later section
+
+---
+
+### cat
+
+**What it stands for:**
+- Short for "concatenate"
+- One of most frequently used Linux command line utilities
+
+**Common uses:**
+- Read and print files
+- View file contents
+- Combine (concatenate) multiple files
+
+**Basic file viewing:**
+```bash
+cat <filename>
+```
+
+**Common operations:**
+
+| Command | Usage |
+|---------|-------|
+| `cat file1 file2` | Concatenate multiple files and display output |
+| `cat file1 file2 > newfile` | Combine multiple files and save to new file |
+| `cat file >> existingfile` | Append file to end of existing file |
+| `cat > file` | Subsequent lines typed go into file (until CTRL-D) |
+| `cat >> file` | Subsequent lines appended to file (until CTRL-D) |
+
+**tac command:**
+- Prints lines of file in reverse order
+- "cat" spelled backwards
+- Each line remains same, but order inverted
+- Syntax exactly same as cat
+
+**Examples:**
+```bash
+tac file
+tac file1 file2 > newfile
+```
+
+---
+
+### Using cat interactively
+
+**Reading from standard input:**
+- cat can read from stdin (terminal window) if no files specified
+
+**Create new file:**
+```bash
+cat > <filename>
+```
+- Command creates new file
+- Waits for user to edit/enter text
+- Press CTRL-D at beginning of next line to save and exit
+
+**Alternative method:**
+```bash
+cat > <filename> << EOF
+```
+- Creates new file
+- Type required input
+- Enter `EOF` at beginning of line to exit
+- EOF is case sensitive
+- Can use another word like `STOP`
+
+---
+
+### echo
+
+**What it does:**
+- Simply displays (echoes) text
+
+**Basic usage:**
+```bash
+echo string
+```
+
+**Output destinations:**
+- Display on standard output (terminal)
+- Place in new file (using `>`)
+- Append to existing file (using `>>`)
+
+**Special character sequences:**
+- Use `-e` option to enable special characters:
+  - `\n` - newline character
+  - `\t` - horizontal tab
+
+**Environment variables:**
+- Particularly useful for viewing environment variable values
+
+**Example:**
+```bash
+echo $USERNAME
+```
+
+**Common operations:**
+
+| Command | Usage |
+|---------|-------|
+| `echo string > newfile` | Place specified string in new file |
+| `echo string >> existingfile` | Append specified string to existing file |
+| `echo $variable` | Display contents of specified environment variable |
+
+---
+
+### Working with large files
+
+**Why special tools needed:**
+- System administrators work with large files:
+  - Configuration files
+  - Text files
+  - Documentation files
+  - Log files
+- Files may accumulate data over time
+
+**Problem with text editors:**
+- Directly opening large file in editor inefficient
+- High memory utilization
+- Most editors try to read entire file into memory first
+
+**Solution: less command**
+- View contents of large file
+- Scroll up and down page by page
+- System doesn't place entire file in memory before starting
+- Much faster than text editor
+
+**Usage:**
+```bash
+less somefile
+```
+OR
+```bash
+cat somefile | less
+```
+
+**Note:**
+- man pages sent through less command by default
+- Older `more` utility has same basic function but fewer capabilities
+- "less is more!"
+
+---
+
+### head
+
+**What it does:**
+- Reads first few lines of each file (10 by default)
+- Displays on standard output
+
+**Specify different number of lines:**
+```bash
+head -n 5 /etc/default/grub
+```
+OR
+```bash
+head -5 /etc/default/grub
+```
+
+---
+
+### tail
+
+**What it does:**
+- Prints last few lines of each file
+- Displays on standard output
+- Default: last 10 lines
+
+**Specify different number of lines:**
+```bash
+tail -n 15 somefile.log
+```
+OR
+```bash
+tail -15 somefile.log
+```
+
+**When especially useful:**
+- Troubleshooting with log files
+- Want to see most recent lines of output
+
+**Monitor growing log file:**
+```bash
+tail -f somefile.log
+```
+- Continuously displays new lines as they appear
+- Enables monitoring current activity being reported/recorded
+
+---
+
+### Viewing compressed files
+
+**Problem:**
+- Many standard commands cannot be used directly on compressed files
+
+**Solution: z family utilities**
+- Versions designed to work directly with compressed files
+- Often have letter "z" prefixed to name
+
+**z family commands:**
+
+| Command | Description |
+|---------|-------------|
+| `zcat compressed-file.txt.gz` | View compressed file |
+| `zless somefile.gz` or `zmore somefile.gz` | Page through compressed file |
+| `zgrep -i less somefile.gz` | Search inside compressed file |
+| `zdiff file1.txt.gz file2.txt.gz` | Compare two compressed files |
+
+**Note:**
+- `zless` works on uncompressed files too (ignores decompression)
+
+**Other compression methods:**
+- **xz:** xzcat, xzless, xzdiff
+- **bzip2:** bzcat, bzless, bzdiff
+
+---
+
+### Introduction to sed and awk
+
+**Common task:**
+- Create file, then repeatedly edit/extract contents
+
+**Why use sed and awk:**
+- Many users write scripts with Python or Perl instead
+- Using comprehensive languages is fine in most circumstances
+- However, sed/awk are lighter:
+  - Use fewer system resources
+  - Execute faster
+- Situations where complex tools wasteful:
+  - During system booting
+  - System may not even be able to run them
+- Simpler tools always needed
+
+---
+
+### sed
+
+**What it is:**
+- Powerful text processing tool
+- One of oldest, earliest, most popular UNIX utilities
+- Name = abbreviation for "stream editor"
+
+**What it does:**
+- Modify contents of file or input stream
+- Usually places contents into new file or output stream
+- Filter text
+- Perform substitutions in data streams
+
+**How it works:**
+1. Data from input source/file taken and moved to working space
+2. Entire list of operations/modifications applied to data in working space
+3. Final contents moved to standard output space (or stream)
+
+---
+
+### sed command syntax
+
+**Invocation methods:**
+
+| Command | Usage |
+|---------|-------|
+| `sed -e command <filename>` | Specify editing commands at command line, process input from file, output to stdout |
+| `sed -f scriptfile <filename>` | Specify script file containing sed commands, operate on file, output to stdout |
+| `echo "I hate you" \| sed s/hate/love/` | Use sed to filter standard input, output to stdout |
+
+**Note:** `-e` option allows multiple editing commands simultaneously (unnecessary if only one operation)
+
+---
+
+### sed basic operations
+
+**pattern = current string, replace_string = new string:**
+
+| Command | Usage |
+|---------|-------|
+| `sed s/pattern/replace_string/ file` | Substitute first string occurrence in every line |
+| `sed s/pattern/replace_string/g file` | Substitute all string occurrences in every line |
+| `sed 1,3s/pattern/replace_string/g file` | Substitute all occurrences in range of lines |
+| `sed -i s/pattern/replace_string/g file` | Save changes in same file |
+
+**Important warning about -i option:**
+- Use with care
+- Action not reversible
+- Safer to use sed without `-i` then replace file yourself
+
+**Safer approach:**
+```bash
+sed s/pattern/replace_string/g file1 > file2
+```
+- Replaces all occurrences in file1
+- Moves contents to file2
+- View file2 with `cat file2`
+- If approved, overwrite original: `mv file2 file1`
+
+**Example: Convert numbers to month names:**
+```bash
+sed -e 's/01/JAN/' \
+    -e 's/02/FEB/' \
+    -e 's/03/MAR/' \
+    -e 's/04/APR/' \
+    -e 's/05/MAY/' \
+    -e 's/06/JUN/' \
+    -e 's/07/JUL/' \
+    -e 's/08/AUG/' \
+    -e 's/09/SEP/' \
+    -e 's/10/OCT/' \
+    -e 's/11/NOV/' \
+    -e 's/12/DEC/'
+```
+
+---
+
+### awk
+
+**What it is:**
+- Created at Bell Labs in 1970s
+- Named after authors: Alfred Aho, Peter Weinberger, Brian Kernighan
+- Used to extract and print specific contents
+- Often used to construct reports
+
+**Key features:**
+- Powerful utility and interpreted programming language
+- Manipulates data files
+- Retrieves and processes text
+- Works well with:
+  - Fields (single piece of data, essentially a column)
+  - Records (collection of fields, essentially a line)
+
+**Invocation:**
+
+| Command | Usage |
+|---------|-------|
+| `awk 'command' file` | Specify command directly at command line |
+| `awk -f scriptfile file` | Specify file containing script to execute |
+
+---
+
+### awk basic operations
+
+**How it works:**
+- Input file read one line at a time
+- For each line, awk matches given pattern in order
+- Performs requested action
+
+**Field separator:**
+- Use `-F` option to specify field separator character
+- Example: `/etc/passwd` uses `:` separator, so use `-F:`
+
+**Important:** Commands must be surrounded by apostrophes (single quotes)
+
+**Common operations:**
+
+| Command | Usage |
+|---------|-------|
+| `awk '{ print $0 }' /etc/passwd` | Print entire file |
+| `awk -F: '{ print $1 }' /etc/passwd` | Print first field (column), separated by colon |
+| `awk -F: '{ print $1 $7 }' /etc/passwd` | Print first and seventh field |
+
+---
+
+### sort
+
+**What it does:**
+- Rearrange lines of text file
+- Ascending or descending order
+- According to sort key
+
+**Key features:**
+- Can apply key to sort by particular field (column)
+- Default sort key: order of ASCII characters (alphabetically)
+
+**Common usage:**
+
+| Syntax | Usage |
+|--------|-------|
+| `sort <filename>` | Sort lines by characters at beginning of each line |
+| `cat file1 file2 \| sort` | Combine two files, sort lines, display output |
+| `sort -r <filename>` | Sort lines in reverse order |
+| `sort -k 3 <filename>` | Sort by 3rd field instead of beginning |
+
+**With -u option:**
+- Checks for unique values after sorting
+- Equivalent to running `uniq` on output of `sort`
+
+---
+
+### uniq
+
+**What it does:**
+- Removes duplicate consecutive lines in text file
+- Useful for simplifying text display
+
+**Important:**
+- Requires duplicate entries be consecutive
+- Often run `sort` first, then pipe to `uniq`
+- `sort -u` can do both in one step
+
+**Remove duplicates from multiple files:**
+```bash
+sort file1 file2 | uniq > file3
+```
+OR
+```bash
+sort -u file1 file2 > file3
+```
+
+**Count duplicate entries:**
+```bash
+uniq -c filename
+```
+
+---
+
+### paste
+
+**Use case:**
+- Have file with employee names
+- Another file with phone numbers and Employee IDs
+- Want to create new file with all data in three columns
+
+**What it does:**
+- Creates single file containing all columns
+- Different columns identified by delimiters
+- Delimiters: blank space, tab, Enter, etc.
+
+**Options:**
+- `-d delimiters` - specify list of delimiters instead of tabs
+- `-s` - append data in series (horizontal) rather than parallel (vertical)
+
+**Basic usage:**
+```bash
+paste file1 file2
+```
+
+**Use different delimiter:**
+```bash
+paste -d, file1 file2
+```
+- Common delimiters: space, tab, `|`, comma
+
+---
+
+### join
+
+**Use case:**
+- Two files with similar columns
+- Employees' phone numbers in two files
+- Want to combine without repeating common column data
+
+**What it is:**
+- Enhanced version of paste
+- Checks if files share common fields
+- Joins lines based on common field
+
+**Usage:**
+```bash
+join file1 file2
+```
+
+**Example:**
+- Common field: phone number
+- Result: combined file based on phone number
+
+---
+
+### split
+
+**What it does:**
+- Break up (split) file into equal-sized segments
+- For easier viewing and manipulation
+- Generally used on relatively large files
+
+**Default behavior:**
+- Breaks file into 1000-line segments
+- Original file remains unchanged
+- Creates new files with same name plus added prefix
+- Default prefix: `x`
+
+**Basic usage:**
+```bash
+split infile
+```
+
+**Use different prefix:**
+```bash
+split infile <Prefix>
+```
+
+**Example with dictionary file:**
+```bash
+wc -l linux.words                # Count lines (99171 lines)
+split linux.words lwords         # Split into segments named lwordsxx
+```
+- Last segment will be smaller
+
+---
+
+### Regular expressions and search patterns
+
+**What they are:**
+- Text strings for matching specific pattern
+- Or searching for specific location (start/end of line/word)
+
+**Components:**
+- Normal characters
+- Meta-characters (like `*` and `$`)
+
+**Tools using regular expressions:**
+- Text editors: vi
+- Utilities: sed, awk, find, grep
+- Programming languages: Perl, Python, Ruby
+
+**Important distinction:**
+- Different from wildcards/meta-characters in filename matching (bash)
+
+**Search patterns:**
+
+| Pattern | Usage |
+|---------|-------|
+| `.` (dot) | Match any single character |
+| `a\|z` | Match a or z |
+| `$` | Match end of line |
+| `^` | Match beginning of line |
+| `*` | Match preceding item 0 or more times |
+
+---
+
+### Using regular expressions
+
+**Example sentence:** "the quick brown fox jumped over the lazy dog"
+
+**Patterns and matches:**
+
+| Command | Usage |
+|---------|-------|
+| `a..` | Matches "azy" |
+| `b.\|j.` | Matches both "br" and "ju" |
+| `..$` | Matches "og" |
+| `l.*` | Matches "lazy dog" |
+| `l.*y` | Matches "lazy" |
+| `the.*` | Matches whole sentence |
+
+---
+
+### grep
+
+**What it is:**
+- Extensively used as primary text searching tool
+- Scans files for specified patterns
+- Works with regular expressions and simple strings
+
+**Common usage:**
+
+| Command | Usage |
+|---------|-------|
+| `grep [pattern] <filename>` | Search for pattern, print all matching lines |
+| `grep -v [pattern] <filename>` | Print all lines that do NOT match pattern |
+| `grep [0-9] <filename>` | Print lines containing numbers 0-9 |
+| `grep -C 3 [pattern] <filename>` | Print context of lines (3 lines above and below pattern) |
+
+---
+
+### strings
+
+**What it does:**
+- Extract all printable character strings from files
+- Useful for locating human-readable content in binary files
+- For text files, just use grep
+
+**Example:**
+```bash
+strings book1.xls | grep my_string
+```
+- Search for "my_string" in spreadsheet
+
+**Use case:**
+- Search programs for GPL licenses of various versions
+
+---
+
+### tr
+
+**What it does:**
+- Translate specified characters into other characters
+- Or delete them
+
+**Syntax:**
+```bash
+tr [options] set1 [set2]
+```
+- `set1`: characters to be replaced or removed
+- `set2`: characters to substitute for set1
+- Sets often need single quotes
+
+**Common operations:**
+
+| Command | Usage |
+|---------|-------|
+| `tr abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ` | Convert lowercase to uppercase |
+| `tr '{}' '()' < inputfile > outputfile` | Translate braces to parentheses |
+| `echo "This is for testing" \| tr [:space:] '\t'` | Translate whitespace to tabs |
+| `echo "This is for testing" \| tr -s [:space:]` | Squeeze repetition of characters |
+| `echo "the geek stuff" \| tr -d 't'` | Delete specified characters |
+| `echo "my username is 432234" \| tr -cd [:digit:]` | Complement sets (keep only digits) |
+| `tr -cd [:print:] < file.txt` | Remove all non-printable characters |
+| `tr -s '\n' ' ' < file.txt` | Join all lines into single line |
+
+---
+
+### tee
+
+**What it does:**
+- Takes output from any command
+- Sends to standard output AND saves to file
+- "Tees" the output stream
+
+**Usage:**
+```bash
+ls -l | tee newfile
+```
+- Lists directory contents on screen
+- Saves output to newfile
+
+**View saved output:**
+```bash
+cat newfile
+```
+
+---
+
+### wc (word count)
+
+**What it counts:**
+- Number of lines
+- Number of words
+- Number of characters
+- In file or list of files
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `-l` | Display number of lines |
+| `-c` | Display number of bytes |
+| `-w` | Display number of words |
+
+**Default:** All three options active
+
+**Example (lines only):**
+```bash
+wc -l filename
+```
+
+---
+
+### cut
+
+**What it does:**
+- Manipulate column-based files
+- Extract specific columns
+
+**Default:**
+- Column separator: TAB character
+- Different delimiter can be specified as option
+
+**Example (third column, space-delimited):**
+```bash
+ls -l | cut -d" " -f3
+```
+
+---
+
+### Chapter 14 summary
+
+**Key concepts covered:**
+
+- **Command line advantages:**
+  - Often allows users to perform tasks more efficiently than GUI
+
+- **Basic text tools:**
+  - `cat` - concatenate, read, print, combine files
+  - `echo` - display text on stdout or place in file
+
+- **Advanced text processing:**
+  - `sed` - stream editor for filtering and substitutions
+  - `awk` - interpreted programming language for data extraction and reporting
+
+- **Sorting and filtering:**
+  - `sort` - sort text files and output streams
+  - `uniq` - eliminate duplicate entries
+  - `paste` - combine fields from different files
+  - `join` - combine lines based on common field
+  - `split` - break large file into equal-sized segments
+
+- **Regular expressions:**
+  - Text strings for pattern matching
+  - Search for specific locations (start/end of line/word)
+  - `grep` - search text files and streams for patterns
+
+- **Text transformation:**
+  - `tr` - translate characters, handle special characters
+  - `tee` - save copy of stdout to file while displaying
+  - `wc` - display number of lines, words, characters
+  - `cut` - extract columns from file
+
+- **File viewing:**
+  - `less` - view files page by page, scroll both directions
+  - `head` - display first few lines (default 10)
+  - `tail` - display last few lines (default 10)
+  - `strings` - extract printable strings from binary files
+
+- **Compressed files:**
+  - z command family (zcat, zless, zgrep, etc.)
+  - Read and work with compressed files directly
+
+---
