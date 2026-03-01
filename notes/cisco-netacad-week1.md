@@ -1479,3 +1479,350 @@ IANA → RIRs → ISPs → Organizations/Smaller ISPs
 - Classless addressing (CIDR) = modern, efficient
 
 ---
+
+---
+
+## Feb 28, 2026
+
+## Module 10: IPv6 Addressing Formats and Rules
+
+### Module objective
+Explain the features of IPv6 addressing and the need for IPv6 transition.
+
+**Topics covered:**
+- IPv4 Issues
+- IPv6 Addressing
+
+---
+
+### The Need for IPv6
+
+**Primary motivation:**
+- IPv4 address space depletion
+- 4.3 billion theoretical maximum addresses insufficient
+
+**IPv6 solution:**
+- 128-bit address space
+- 340 undecillion (340 followed by 36 zeros) possible addresses
+- Effectively unlimited addresses for foreseeable future
+
+---
+
+### Regional Internet Registry (RIR) IPv4 Exhaustion
+
+**Status as of course date:**
+- 4 out of 5 RIRs have exhausted IPv4 address pools
+- Only limited IPv4 addresses available for allocation
+
+**Temporary mitigation (IPv4):**
+- Private addressing (RFC 1918)
+- Network Address Translation (NAT)
+- Extended IPv4 lifespan but created limitations
+
+---
+
+### Limitations of NAT
+
+**Problems with NAT:**
+- Creates latency (address translation overhead)
+- Breaks end-to-end connectivity model
+- Severely limits peer-to-peer communications
+- Complicates many applications
+- Not a long-term solution
+
+**Why NAT isn't enough:**
+- Increasing mobile device adoption
+- Internet of Things (IoT) growth
+- Emerging applications requiring direct connectivity
+
+---
+
+### IPv6 Enhancements Beyond Address Space
+
+**Beyond just more addresses:**
+- Simplified header format (more efficient routing)
+- Built-in IPsec support
+- No broadcast (uses multicast instead)
+- Improved address autoconfiguration
+
+**ICMPv6 improvements:**
+- Address resolution (replaces ARP)
+- Address autoconfiguration (SLAAC)
+- Neighbor discovery
+- Enhanced diagnostics
+
+---
+
+### Internet of Things (IoT) Impact
+
+**Device explosion:**
+- Traditional: Computers, tablets, smartphones
+- Emerging: Automobiles, biomedical devices, household appliances, sensors
+- Future: Natural ecosystem monitoring, wearables, industrial sensors
+
+**IPv6 necessity:**
+- Each IoT device needs unique address
+- Billions of devices coming online
+- IPv4 address space cannot accommodate growth
+
+---
+
+### IPv6 Adoption Status
+
+**Mobile providers:**
+- Leading IPv6 adoption
+- Top 2 US mobile providers: >90% traffic over IPv6
+- Mobile-first approach due to address needs
+
+**Major content providers:**
+- YouTube, Facebook, Netflix: IPv6 enabled
+- Microsoft, Facebook, LinkedIn: Transitioning to IPv6-only internally
+
+**ISPs:**
+- Comcast (2018): >65% IPv6 deployment
+- British Sky Broadcasting: >86% deployment
+- Trend: Increasing IPv6 adoption worldwide
+
+---
+
+### IPv4 and IPv6 Coexistence
+
+**Reality:**
+- No specific cutover date
+- Both protocols will coexist for years
+- Gradual transition, not overnight switch
+
+**Three migration techniques:**
+
+---
+
+**1) Dual Stack (Preferred):**
+- Devices run both IPv4 and IPv6 simultaneously
+- Also called "native IPv6"
+- Network has IPv6 connection to ISP
+- Can access both IPv4 and IPv6 content
+- Most flexible approach
+
+---
+
+**2) Tunneling:**
+- Transports IPv6 packets over IPv4 network
+- IPv6 packet encapsulated inside IPv4 packet
+- Used when IPv6 not available end-to-end
+- Temporary solution during transition
+
+---
+
+**3) Translation (NAT64):**
+- Allows IPv6 devices to communicate with IPv4 devices
+- Translates between IPv6 and IPv4 packets
+- Similar concept to IPv4 NAT
+- Used when IPv6-only needs to reach IPv4-only
+
+**Goal:** Native IPv6 end-to-end communication. Tunneling and translation are temporary transition mechanisms.
+
+---
+
+### IPv6 Address Representation
+
+**Address length:**
+- 128 bits (vs IPv4's 32 bits)
+- Written as hexadecimal string
+
+**Hexadecimal number system:**
+- Base 16 (0-9, A-F)
+- Digits: 0 1 2 3 4 5 6 7 8 9 A B C D E F
+- Case insensitive (A = a, F = f)
+
+---
+
+### IPv6 Address Format
+
+**Structure:**
+- 32 hexadecimal digits total
+- Grouped into 8 segments (hextets)
+- Each hextet = 16 bits = 4 hex digits
+- Format: `x:x:x:x:x:x:x:x`
+
+**Terminology:**
+- **Octet:** 8 bits (IPv4 term)
+- **Hextet:** 16 bits (IPv6 term, unofficial but common)
+
+**Example (preferred format):**
+```
+2001:0db8:0000:1111:0000:0000:0000:0200
+```
+
+**Characteristics:**
+- Colons separate hextets
+- Leading zeros present in each hextet
+- All 32 hex digits shown
+
+---
+
+### Rule 1: Omit Leading Zeros
+
+**Purpose:** Reduce address notation length
+
+**Rule:**
+- Can omit leading zeros in each hextet
+- CANNOT omit trailing zeros (would be ambiguous)
+
+**Examples:**
+
+| Preferred Format | Leading Zeros Omitted |
+|-----------------|----------------------|
+| `2001:0db8:0000:1111:0000:0000:0000:0200` | `2001:db8:0:1111:0:0:0:200` |
+| `2001:0db8:000a:0001:c012:90ff:fe90:0001` | `2001:db8:a:1:c012:90ff:fe90:1` |
+| `fe80:0000:0000:0000:0123:4567:89ab:cdef` | `fe80:0:0:0:123:4567:89ab:cdef` |
+
+**Why trailing zeros can't be omitted:**
+- `abc` could be `0abc` or `abc0` (different values)
+- Omitting trailing zeros creates ambiguity
+
+---
+
+### Rule 2: Double Colon Compression
+
+**Purpose:** Further reduce notation for consecutive zero hextets
+
+**Rule:**
+- Double colon `::` replaces one contiguous string of all-zero hextets
+- Can only be used ONCE per address
+- Best practice: Use on longest string of zeros
+- If equal length strings: Use on first occurrence
+
+**Example:**
+```
+2001:db8:0:1111:0:0:0:200  →  2001:db8:0:1111::200
+```
+The `::` replaces three consecutive zero hextets `(0:0:0)`
+
+---
+
+**Why only once per address:**
+
+**Incorrect usage:**
+```
+2001:db8::abcd::1234  ❌ WRONG
+```
+
+**Possible expansions (ambiguous):**
+```
+2001:db8::abcd:0000:0000:1234
+2001:db8::abcd:0000:0000:0000:1234
+2001:db8:0000:abcd::1234
+2001:db8:0000:0000:abcd::1234
+```
+
+**Cannot determine which is intended!**
+
+---
+
+### IPv6 Address Compression Examples
+
+**Example 1:**
+```
+Preferred:   2001:0db8:0000:1111:0000:0000:0000:0200
+No leading:  2001:db8:0:1111:0:0:0:200
+Compressed:  2001:db8:0:1111::200
+```
+
+**Example 2:**
+```
+Preferred:   2001:0db8:aaaa:0001:0000:0000:0000:0000
+No leading:  2001:db8:aaaa:1:0:0:0:0
+Compressed:  2001:db8:aaaa:1::
+```
+
+**Example 3:**
+```
+Preferred:   fe80:0000:0000:0000:0123:4567:89ab:cdef
+No leading:  fe80:0:0:0:123:4567:89ab:cdef
+Compressed:  fe80::123:4567:89ab:cdef
+```
+
+**Example 4 (special addresses):**
+```
+Loopback:
+Preferred:   0000:0000:0000:0000:0000:0000:0000:0001
+Compressed:  ::1
+
+All zeros:
+Preferred:   0000:0000:0000:0000:0000:0000:0000:0000
+Compressed:  ::
+```
+
+---
+
+### Address Compression Best Practices
+
+**Multiple zero strings:**
+- Compress the longest string
+- If equal length, compress the first
+
+**Example with multiple zero strings:**
+```
+2001:db8:0:0:ab00:0:0:0
+
+Option A: 2001:db8::ab00:0:0:0  (compress first 0:0)
+Option B: 2001:db8:0:0:ab00::   (compress last 0:0:0)
+
+Best practice: Option B (longer string compressed)
+```
+
+---
+
+### IPv6 Address Format Summary
+
+**Three representation formats:**
+
+| Format | Description | Example |
+|--------|-------------|---------|
+| **Preferred** | All 32 hex digits, with leading zeros | `2001:0db8:0000:1111:0000:0000:0000:0200` |
+| **No leading zeros** | Leading zeros omitted | `2001:db8:0:1111:0:0:0:200` |
+| **Compressed** | Leading zeros omitted + double colon | `2001:db8:0:1111::200` |
+
+**All three represent the same address.**
+
+---
+
+### Key Takeaways
+
+**Why IPv6:**
+- IPv4 address exhaustion (4.3 billion insufficient)
+- IoT device explosion requires more addresses
+- NAT limitations hinder many applications
+- 340 undecillion IPv6 addresses effectively unlimited
+
+**IPv6 advantages:**
+- Massive address space
+- No need for NAT
+- Improved routing efficiency
+- Built-in security features
+- Better support for mobile devices
+
+**Coexistence strategy:**
+- Dual stack preferred (run both protocols)
+- Tunneling for transitional networks
+- Translation for IPv6-only to IPv4-only
+- Goal: Native IPv6 end-to-end
+
+**IPv6 address format:**
+- 128 bits (32 hex digits)
+- 8 hextets of 16 bits each
+- Separated by colons
+- Hexadecimal (0-9, A-F)
+
+**Compression rules:**
+- Rule 1: Omit leading zeros (not trailing)
+- Rule 2: Use `::` for consecutive zeros (once per address)
+- Compressed format most common in practice
+
+**Adoption reality:**
+- Coexistence will last years
+- Mobile providers leading adoption
+- Major content providers IPv6-enabled
+- Gradual transition, not immediate switch
+
+---
