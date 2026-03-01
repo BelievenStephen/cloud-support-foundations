@@ -25,6 +25,238 @@ dig example.com +short
 - Does the instance have a public IPv4 or Elastic IP?
 - Subnet route table ID and default route target (IGW vs NAT vs none)
 
+## VPC Routing-First Triage (AWS Console + Instance Checks)
+
+**Approach:** Verify configuration from AWS Console before making changes on the instance.
+
+---
+
+### 0) Capture Context (Before Any Changes)
+
+**Document these details:**
+- AWS Region
+- Instance ID and Name tag
+- VPC ID
+- Subnet ID
+- Instance public IPv4 address (or Elastic IP)
+- Route table ID (associated with subnet)
+- Security Group ID(s)
+- Time issue started
+
+**Why capture first:** Provides baseline for investigation and rollback if needed.
+
+---
+
+### 1) Prove Subnet Type by Route Table (Primary Proof)
+
+**Console path:**
+```
+VPC → Subnets → Select subnet → Route table tab → Click route table ID → Routes tab
+```
+
+**Classify by `0.0.0.0/0` target:**
+
+| Target | Subnet Type | Internet Access Method |
+|--------|-------------|----------------------|
+| `→ igw-...` | Public subnet | Direct egress via Internet Gateway |
+| `→ nat-...` | Private subnet | Egress via NAT Gateway |
+| (missing) | Isolated subnet | No internet access configured |
+
+---
+
+**Additional verifications:**
+
+**Internet Gateway check:**
+```
+VPC → Internet gateways → Verify IGW attached to VPC
+```
+- State must be "Attached"
+- VPC ID must match instance's VPC
+
+**NAT Gateway check (if route uses NAT):**
+```
+VPC → NAT gateways → Check NAT state and subnet
+```
+
+**Requirements:**
+- State: **Available** (not Failed, Pending, or Deleted)
+- Subnet: Must be in a **public subnet**
+  - NAT's subnet route table must have `0.0.0.0/0 → igw-...`
+
+**Common mistake:** NAT Gateway placed in private subnet (cannot reach internet)
+
+---
+
+### 2) Check Instance Addressing (Matches Route Design)
+
+**Console path:**
+```
+EC2 → Instances → Select instance → Networking tab
+```
+
+**Verify addressing matches route table design:**
+
+| Route Table Type | Instance Requirement | What to Verify |
+|-----------------|---------------------|---------------|
+| Uses IGW | Must have public IPv4 or EIP | Networking tab shows public IP |
+| Uses NAT | Typically no public IPv4 | Private IP only (this is normal) |
+
+**If mismatch:**
+- IGW route but no public IP → Assign Elastic IP
+- NAT route but has public IP → Design confusion (works but unusual)
+
+---
+
+### 3) Check Security Group Egress (Common Fast Break)
+
+**Console path:**
+```
+EC2 → Instances → Select instance → Security tab → Security groups → Outbound rules
+```
+
+**Required rules:**
+- HTTPS: Port 443 to `0.0.0.0/0`
+- HTTP: Port 80 to `0.0.0.0/0` (if needed)
+- Or: All traffic to `0.0.0.0/0` (default)
+
+**Testing guideline:**
+- Change ONE rule at a time
+- Test immediately after change
+- Revert to known-good state if unsuccessful
+
+**Typical behavior:**
+- Blocking outbound → `curl` times out
+- Effect is immediate (no propagation delay)
+
+---
+
+### 4) Check Network ACLs (Only If SG + Routes Correct)
+
+**Console path:**
+```
+VPC → Network ACLs → Select subnet's NACL → Inbound/Outbound rules tabs
+```
+
+**Critical: NACLs are stateless**
+- Both directions must be explicitly allowed
+
+**Required rules:**
+
+| Direction | Rule | Purpose |
+|-----------|------|---------|
+| Outbound | Allow 443, 80 to `0.0.0.0/0` | HTTPS/HTTP requests |
+| Inbound | Allow 1024-65535 from `0.0.0.0/0` | Return traffic (ephemeral ports) |
+
+**Lab simplification:** Use "Allow all" in both directions during testing
+
+---
+
+### 5) Instance-Level Diagnostic Tests
+
+**Run from the instance to prove DNS vs internet egress:**
+
+**Test DNS resolution:**
+```bash
+dig example.com +short
+```
+**Expected:** IP addresses returned
+
+---
+
+**Test actual internet egress (HTTPS):**
+```bash
+curl -I --connect-timeout 5 --max-time 10 https://example.com
+```
+**Expected:** HTTP response headers (200, 301, etc.)
+
+---
+
+**Optional: Test IP reachability without DNS:**
+```bash
+curl -I --connect-timeout 5 --max-time 10 https://1.1.1.1 || true
+```
+**Purpose:** Isolates routing from DNS
+
+---
+
+**Interpretation matrix:**
+
+| DNS Result | Curl Result | Likely Issue | Next Steps |
+|-----------|-------------|--------------|------------|
+| ✅ Resolves | ❌ Times out | Routing/SG/NACL egress blocked | Check route table → SG egress → NACL |
+| ✅ Resolves | ❌ Fails fast | Local service/TLS issue or explicit reject | Re-check SG/NACL but note immediate failure pattern |
+| ✅ Resolves | ✅ To 1.1.1.1 fails | DNS config issue | Check `/etc/resolv.conf`, VPC DNS settings |
+| ❌ Fails | ❌ Times out | DNS + routing both broken | Start with route table, then DNS |
+
+**Note:** DNS working ≠ internet access working. Always test actual protocol (HTTPS).
+
+---
+
+### 6) Verification and Closeout
+
+**Before declaring issue resolved, confirm ALL of these:**
+
+**AWS Console checks:**
+- ✅ Route table correct for subnet design (IGW or NAT)
+- ✅ Security Group outbound rules match intended configuration
+- ✅ (If applicable) NAT Gateway state is "Available"
+- ✅ (If applicable) NAT Gateway is in public subnet with IGW route
+
+**Instance tests:**
+```bash
+# DNS resolution
+dig example.com +short
+# Must return: IP addresses
+
+# HTTPS connectivity
+curl -I https://example.com
+# Must return: HTTP response headers (200/301/302/etc)
+```
+
+**Documentation:**
+- Record what was changed
+- Note exact configuration that resolved issue
+- Update any runbooks or documentation
+
+---
+
+### Real Lab Example: Security Group Outbound Blocking
+
+**Scenario:** Demonstrate impact of Security Group outbound rules
+
+**Setup:**
+- Region: us-west-1
+- Security Group: `sg-<SECURITY_GROUP_ID>`
+- Instance: Public subnet with IGW route
+
+**Change applied:**
+- Removed outbound rule: "All traffic to `0.0.0.0/0`"
+- Result: No outbound rules present
+
+**Test results:**
+```bash
+# DNS still worked
+dig example.com +short
+# Returned: IP addresses
+
+# HTTPS failed
+curl -I https://example.com
+# Result: Connection timeout
+```
+
+**Key observation:**
+- DNS resolution continued (VPC DNS resolver behavior)
+- HTTPS egress blocked by Security Group
+- Demonstrates: DNS success ≠ internet connectivity
+
+**Resolution:**
+- Restored outbound rule: "All traffic to `0.0.0.0/0`"
+- Verified: `curl` succeeded after restoration
+
+**Lesson:** Always test the actual protocol/port needed, not just DNS.
+
+---
+
 ## Troubleshooting Flow (In Order)
 
 ### 1) Confirm Instance Addressing
