@@ -1826,3 +1826,325 @@ Best practice: Option B (longer string compressed)
 - Gradual transition, not immediate switch
 
 ---
+
+## Mar 3, 2026
+
+## Module 11: Dynamic Addressing with DHCP
+
+### Module objective
+Configure a DHCP server and understand dynamic address assignment.
+
+**Topics covered:**
+- Static and Dynamic Addressing
+- DHCPv4 Configuration
+
+---
+
+### Static IPv4 Address Assignment
+
+**Definition:**
+- Network administrator manually configures network information on each host
+
+**Minimum required configuration:**
+- IP address - Identifies host on network
+- Subnet mask - Identifies network host is connected to
+- Default gateway - Router used to access internet or remote networks
+
+---
+
+### Advantages of Static Addressing
+
+**Benefits:**
+- Useful for servers, printers, network devices
+- Provides consistent addressing for resources
+- Increased control of network resources
+- Predictable addressing for DNS, documentation
+
+**Use cases:**
+- Servers (web, database, file servers)
+- Network printers
+- Network infrastructure devices
+- Devices that need consistent addressing
+
+---
+
+### Disadvantages of Static Addressing
+
+**Problems:**
+- Time-consuming to configure each host manually
+- Error-prone (typos, duplicate IPs, wrong subnet masks)
+- Host only performs basic error checks
+- Requires maintaining accurate address assignment list
+- Addresses are permanent, not reused
+- Doesn't scale well for large networks
+
+**Administrative burden:**
+- Manual configuration for new devices
+- Manual updates when network changes
+- Tracking which addresses are assigned
+
+---
+
+### Dynamic IPv4 Address Assignment
+
+**Definition:**
+- Automatic assignment of IP configuration using DHCP
+- Dynamic Host Configuration Protocol
+
+**What DHCP provides automatically:**
+- IPv4 address
+- Subnet mask
+- Default gateway
+- DNS server addresses
+- Other configuration information
+
+---
+
+### Advantages of DHCP
+
+**Benefits:**
+1. **Reduces administrative burden:** No manual configuration needed
+2. **Eliminates entry errors:** Automated assignment prevents typos
+3. **Addresses are leased:** Temporary assignment, not permanent
+4. **Efficient address reuse:** Released addresses return to pool
+5. **Mobility support:** Users can move between networks easily
+
+**Ideal for:**
+- Large networks with many hosts
+- Networks with frequent user changes
+- Mobile users (laptops, tablets, phones)
+- Guest networks
+
+---
+
+### DHCP Lease Concept
+
+**How leasing works:**
+- Address assigned for specific time period
+- Host renews lease while active
+- If host powered down or leaves network, address returns to pool
+- Same address may be reassigned to different host
+
+**Benefits:**
+- Efficient use of limited address space
+- Automatic reclamation of unused addresses
+- Supports transient users (coffee shops, airports)
+
+---
+
+### DHCP Server Deployment Options
+
+**Enterprise/Large networks:**
+- Dedicated DHCP server (usually Windows/Linux server)
+- Centralized management
+- Supports multiple subnets via DHCP relay
+
+**Home/Small networks:**
+- DHCP server on ISP side (rare)
+- DHCP server built into wireless router (common)
+
+**Wireless router dual role:**
+- Acts as DHCP **client** to ISP (receives public IP)
+- Acts as DHCP **server** for local network (distributes private IPs)
+
+---
+
+### DHCP in Different Scenarios
+
+**Public wireless hotspots:**
+- Airport, coffee shop, hotel wireless
+- Laptop DHCP client contacts local DHCP server
+- Receives temporary IP address for session duration
+
+**Home network:**
+- Wireless router receives public IP from ISP (as DHCP client)
+- Wireless router provides private IPs to home devices (as DHCP server)
+- NAT translates between private and public addresses
+
+**Corporate network:**
+- Dedicated DHCP server on internal network
+- May use multiple DHCP servers for redundancy
+- DHCP relay agents forward requests between subnets
+
+---
+
+### DHCPv4 Operation (DORA Process)
+
+**Four-step process:**
+
+**1) DHCP Discover (Client → Broadcast):**
+- Client sends broadcast looking for DHCP servers
+- Destination IP: `255.255.255.255` (broadcast)
+- Destination MAC: `FF-FF-FF-FF-FF-FF` (broadcast)
+- All hosts receive, only DHCP servers respond
+
+**2) DHCP Offer (Server → Client):**
+- Server responds with available IP address offer
+- Includes IP address, subnet mask, lease duration
+- May include default gateway, DNS servers
+
+**3) DHCP Request (Client → Broadcast):**
+- Client broadcasts acceptance of offered address
+- Requests permission to use the offered IP
+- Broadcast allows other DHCP servers to know address is taken
+
+**4) DHCP Acknowledgment (Server → Client):**
+- Server confirms the address assignment
+- Client can now use the IP configuration
+- Lease timer begins
+
+**Acronym:** DORA (Discover, Offer, Request, Acknowledgment)
+
+---
+
+### DHCP Server Configuration
+
+**DHCP server components:**
+
+**Address pool:**
+- Range of IP addresses available for assignment
+- Example: `192.168.1.100` to `192.168.1.200`
+
+**Excluded addresses:**
+- Addresses not available for dynamic assignment
+- Reserved for static devices (servers, printers)
+
+**Lease duration:**
+- How long address is assigned before renewal required
+- Typical: 24 hours to 7 days
+
+**Default gateway:**
+- Router IP address for hosts to reach other networks
+
+**DNS servers:**
+- DNS server addresses for name resolution
+
+---
+
+### Home Wireless Router DHCP Setup
+
+**Default configuration:**
+- Internal interface IP: `192.168.0.1` (typical)
+- Subnet mask: `255.255.255.0`
+- DHCP server enabled by default
+- Address pool: Usually `192.168.0.100-200`
+
+**Access router configuration:**
+- Open web browser
+- Navigate to router IP (e.g., `192.168.0.1`)
+- Login with admin credentials
+- Navigate to DHCP settings
+
+**Common settings:**
+- Enable/disable DHCP server
+- Starting IP address
+- Maximum number of users
+- Lease time
+
+---
+
+### DHCP Address Pool Planning
+
+**Considerations:**
+
+**Network size:**
+- Determine maximum number of concurrent hosts
+- Plan for growth
+
+**Address exclusions:**
+- Reserve addresses for static devices
+- Typically exclude lower addresses for servers/infrastructure
+
+**Example planning:**
+```
+Network: 192.168.1.0/24
+Total addresses: 254 usable
+
+Reserved (static):
+- 192.168.1.1: Router/gateway
+- 192.168.1.2-10: Servers
+- 192.168.1.11-20: Printers
+- 192.168.1.21-30: Network devices
+
+DHCP pool:
+- 192.168.1.100-254: Dynamic assignment (155 addresses)
+```
+
+---
+
+### Static vs Dynamic Comparison
+
+| Aspect | Static Assignment | Dynamic Assignment (DHCP) |
+|--------|------------------|--------------------------|
+| **Configuration** | Manual on each host | Automatic via DHCP |
+| **Error rate** | Higher (human error) | Lower (automated) |
+| **Administrative effort** | High | Low |
+| **Address reuse** | No (permanent) | Yes (leased) |
+| **Best for** | Servers, printers, infrastructure | Workstations, mobile devices |
+| **Scalability** | Poor for large networks | Excellent |
+| **Mobility** | Requires reconfiguration | Seamless |
+
+---
+
+### DHCP Troubleshooting Basics
+
+**Common issues:**
+
+**Client gets no IP address:**
+- DHCP server not running
+- No DHCP server on network
+- Client not receiving DHCP offers
+- Firewall blocking DHCP traffic
+
+**Client gets wrong network:**
+- Multiple DHCP servers responding
+- Rogue DHCP server on network
+- Incorrect DHCP server configuration
+
+**Client gets APIPA address (169.254.x.x):**
+- No DHCP server available
+- Client cannot reach DHCP server
+- Windows automatic private IP addressing fallback
+
+---
+
+### Key Takeaways
+
+**Static addressing:**
+- Manual configuration required
+- Time-consuming, error-prone
+- Best for servers and infrastructure
+- Requires address tracking
+
+**Dynamic addressing (DHCP):**
+- Automatic configuration
+- Reduces administrative burden
+- Virtually eliminates entry errors
+- Addresses are leased, not permanent
+- Efficient address reuse
+
+**DHCP process:**
+- Four-step: Discover, Offer, Request, Acknowledgment (DORA)
+- Uses broadcast for discovery
+- Client-server communication
+
+**DHCP deployment:**
+- Can be dedicated server or router feature
+- Wireless routers commonly dual role (client and server)
+- Configured with address pool and lease duration
+
+**Best practices:**
+- Use DHCP for workstations and mobile devices
+- Use static addressing for servers and infrastructure
+- Plan address pools with room for growth
+- Document excluded (static) address ranges
+- Monitor DHCP server for pool exhaustion
+
+**DHCP advantages over static:**
+- Scalability for large networks
+- Reduced configuration errors
+- Support for mobile users
+- Efficient address utilization
+- Lower administrative overhead
+
+---
