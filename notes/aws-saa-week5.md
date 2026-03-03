@@ -395,3 +395,163 @@ aws s3 cp s3://bucket-name/object-key /tmp/test
 - CloudTrail - Track permission changes
 
 ---
+
+## Mar 2, 2026 (continued on Mar 3)
+
+### Lab Exercise: Explicit Deny in Bucket Policy
+
+**Objective:** Demonstrate that explicit deny overrides all allows, including AdministratorAccess
+
+---
+
+### Baseline Verification
+
+**Confirmed caller identity:**
+```bash
+aws sts get-caller-identity
+```
+
+**Result:**
+- ARN: `arn:aws:iam::<ACCOUNT_ID>:user/stephen-admin`
+- Attached policy: AdministratorAccess
+
+**Tested baseline access:**
+```bash
+aws s3 ls s3://stephen-s3-perms-<DATE>
+```
+**Result:** Success - bucket listing returned
+
+---
+
+### Test Object Creation
+
+**Created test object:**
+```bash
+echo "test content" > s3-accessdenied-lab.txt
+aws s3 cp s3-accessdenied-lab.txt s3://stephen-s3-perms-<DATE>/
+```
+
+**Verification:**
+- Object uploaded successfully
+- Visible in bucket listing
+
+---
+
+### Breaking Change: Add Explicit Deny
+
+**Bucket policy applied:**
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Deny",
+      "Principal": {
+        "AWS": "arn:aws:iam::<ACCOUNT_ID>:user/stephen-admin"
+      },
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::stephen-s3-perms-<DATE>"
+    }
+  ]
+}
+```
+
+**Target:**
+- Action: `s3:ListBucket`
+- Resource: Bucket ARN (not object ARN)
+- Principal: `stephen-admin`
+
+---
+
+### Testing After Deny
+
+**Attempted bucket listing:**
+```bash
+aws s3 ls s3://stephen-s3-perms-<DATE>
+```
+
+**Error returned:**
+```
+An error occurred (AccessDenied) when calling the ListObjectsV2 operation: 
+Access Denied with an explicit deny in a resource-based policy
+```
+
+**Key observation:**
+- AdministratorAccess attached to user
+- Identity policy allows all S3 actions
+- Bucket policy explicit deny **overrides** identity policy allow
+
+---
+
+### Resolution Applied
+
+**Removed bucket policy:**
+- S3 Console → Bucket → Permissions → Bucket policy
+- Deleted entire policy document
+- Saved changes
+
+**Result:** Bucket policy section now empty
+
+---
+
+### Verification After Fix
+
+**Re-tested bucket listing:**
+```bash
+aws s3 ls s3://stephen-s3-perms-<DATE>
+```
+
+**Result:** Success
+- Bucket listing returned normally
+- Object `s3-accessdenied-lab.txt` visible
+
+---
+
+### Cleanup
+
+**Removed test object:**
+```bash
+aws s3 rm s3://stephen-s3-perms-<DATE>/s3-accessdenied-lab.txt
+```
+
+**Verification:**
+- Object deleted
+- Bucket listing no longer shows test object
+
+---
+
+### Key Observations
+
+**Explicit deny behavior:**
+- Overrides all allows from any source
+- Includes AdministratorAccess policy
+- Resource policy (bucket policy) can block identity policy permissions
+
+**Error message clarity:**
+- Error explicitly stated "explicit deny in a resource-based policy"
+- Directs investigation to bucket policy, not identity policy
+
+**Policy evaluation order proven:**
+1. Check for explicit deny (found in bucket policy)
+2. Deny matched → access blocked
+3. Identity policy allows never evaluated
+
+**Troubleshooting lesson:**
+- When AdministratorAccess user gets AccessDenied, check resource policies
+- Look for explicit deny statements in bucket policies, key policies, etc.
+- Explicit deny is the first thing evaluated, always wins
+
+---
+
+### Lab Workflow Summary
+
+| Step | Action | Result |
+|------|--------|--------|
+| 1. Baseline | `aws s3 ls` with AdministratorAccess | ✅ Success |
+| 2. Add deny | Bucket policy denies ListBucket | ❌ AccessDenied |
+| 3. Remove deny | Delete bucket policy | ✅ Success |
+| 4. Cleanup | Delete test object | ✅ Complete |
+
+**Principle reinforced:** Explicit deny > Allow (regardless of policy source or breadth)
+
+---
