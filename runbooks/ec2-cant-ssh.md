@@ -17,85 +17,239 @@ Diagnose and resolve SSH connectivity issues to EC2 instances using systematic n
 
 ## Fast Checks (In Order)
 
-### 1) Confirm public path exists
+### 1) AWS Console Triage (Complete Network Path)
 
-**Verify instance has public connectivity:**
-
-**Check public IP:**
-- Instance has public IPv4 address (or Elastic IP)
-- Find in EC2 console: Instance Details → Public IPv4 address
-
-**Check subnet routing:**
-- Navigate to subnet's route table
-- Verify route: `0.0.0.0/0 → igw-...`
-- This proves internet routing exists
-
-**Check Internet Gateway:**
-- VPC has Internet Gateway attached
-- IGW must be attached to same VPC as instance
+**Use this systematic order to avoid guessing. Most SSH failures are network path or Security Group source IP issues.**
 
 ---
 
-### 2) Security Group (stateful)
+#### Instance State and Target IP
 
-**Instance-level firewall - check first for most SSH issues**
+**EC2 Console → Instances → Select instance**
 
-**Required inbound rules:**
-- Protocol: TCP
-- Port: 22
-- Source: Your current public IP `/32`
+**Capture these details:**
+- Instance state: Must be `running`
+- Public IPv4 address (or Elastic IP assigned)
+- Subnet ID and VPC ID
+- Security Group ID(s)
+- Key pair name (assigned at launch)
+- Availability Zone
 
-**Common mistakes:**
-- Wrong source IP (your public IP changed)
-- Editing wrong security group (not attached to instance)
-- Typo in CIDR block
-
-**Outbound rules:**
-- Usually allow all by default
-- If restricted: return traffic automatic due to stateful behavior
-- No special outbound rule needed for SSH
-
-**How to find your public IP:**
-- AWS Console has "My IP" option when adding rules
-- Or use: `curl ifconfig.me`
+**Critical:** If no public IP exists, you cannot SSH directly from internet
 
 ---
 
-### 3) NACL (stateless)
+#### Subnet Public Reachability (Route to IGW)
 
-**Subnet-level firewall - check if timeout persists after SG fixes**
+**VPC Console → Subnets → Select subnet → Route table tab → Click route table ID**
 
-**If NACL is restrictive, must allow both directions:**
+**Verify routes:**
+```
+Destination          Target
+172.31.0.0/16    →  local (VPC CIDR)
+0.0.0.0/0        →  igw-...
+```
+
+**Required for SSH from internet:**
+- Route `0.0.0.0/0 → igw-...` must exist
+- This proves subnet has internet routing
+
+**If route missing or points elsewhere:** SSH will timeout
+
+---
+
+#### Security Group Inbound (Most Common Root Cause)
+
+**EC2 Console → Security Groups → Select attached SG → Inbound rules tab**
+
+**Required rule:**
+```
+Type: SSH
+Protocol: TCP
+Port: 22
+Source: <YOUR_CURRENT_IP>/32
+```
+
+**Use "My IP" option:** Console automatically fills your current public IP
+
+**Common failure pattern:**
+```
+Scenario: SSH worked yesterday, fails today
+Cause: Your ISP/VPN changed your public IP
+Result: Connection timeout
+Fix: Update Security Group rule to current IP
+```
+
+**Verify source IP matches:**
+```bash
+# Check your current public IP
+curl ifconfig.me
+
+# Compare with Security Group rule source
+```
+
+---
+
+#### Network ACL (Only If Custom/Restrictive)
+
+**VPC Console → Network ACLs → Find NACL associated with subnet**
+
+**Default NACL:** Allows all traffic (rarely the issue)
+
+**If NACL is restrictive, verify both directions (stateless):**
 
 **Inbound rules:**
-- Allow TCP 22 (SSH connection initiation)
-- Source: Your public IP or `0.0.0.0/0`
+- Allow TCP 22 from your client IP (or `0.0.0.0/0` for labs)
 
 **Outbound rules:**
-- Allow TCP ephemeral ports (1024-65535)
-- Destination: Your public IP or `0.0.0.0/0`
-- Required for return traffic (NACL is stateless)
+- Allow TCP 1024-65535 to your client IP (or `0.0.0.0/0`)
+- Ephemeral ports required for return traffic
 
-**Rule order matters:**
+**Rule evaluation:**
 - Lower rule numbers evaluated first
 - Explicit deny overrides later allows
+- Ensure rule order doesn't deny before allow
 
 ---
 
-### 4) Classify the symptom
+#### Status Checks (Separate Network vs Host Issues)
 
-**Use `nc` to test port reachability:**
+**EC2 Console → Instances → Status checks tab**
+
+**Two check types:**
+
+| Check Type | What It Tests | Failed Indicates |
+|-----------|---------------|-----------------|
+| **System status** | AWS infrastructure (hypervisor, network, power) | AWS host/hardware issue |
+| **Instance status** | Guest OS (network config, software) | OS-level issue |
+
+**Interpretation:**
+
+**System status failed:**
+- AWS infrastructure problem
+- Resolution: Stop and start instance (moves to new host)
+- Or contact AWS Support in production
+
+**Instance status failed:**
+- OS or application issue
+- Resolution: Use SSM Session Manager or EC2 Instance Connect to investigate
+- Check: sshd service, disk space, OS firewall
+
+**Both passed:**
+- Network path and OS likely healthy
+- Issue is typically: SG rules, NACL, SSH key, or username
+
+---
+
+#### Instance-Side Causes (After Network Path Confirmed)
+
+**Check these only after confirming port 22 is reachable:**
+
+**Wrong username:**
+
+| AMI Type | Correct Username |
+|----------|-----------------|
+| Amazon Linux 2/2023 | `ec2-user` |
+| Ubuntu | `ubuntu` |
+| Red Hat | `ec2-user` |
+| Debian | `admin` |
+| CentOS | `centos` |
+
+**Wrong SSH key:**
+- Must match key pair assigned at instance launch
+- Verify: EC2 Console → Instance → Details → Key pair name
+
+**Key file permissions:**
+```bash
+# Check permissions
+ls -l key.pem
+
+# Fix if needed (must be 400 or 600)
+chmod 400 key.pem
+```
+
+**SSH daemon or host issues:**
+- Use SSM Session Manager or EC2 Instance Connect to check:
+```bash
+# Check sshd service
+sudo systemctl status sshd
+
+# Check port listening
+sudo ss -tulpn | grep :22
+
+# Check disk space
+df -h
+```
+
+**Disk full:**
+- Can break logins and services
+- Check when you have console access
+
+---
+
+### Symptom Classification and Root Cause Mapping
+
+**Use this table to quickly identify likely issue:**
+
+| Symptom | Meaning | Most Likely Root Cause | Where to Look First |
+|---------|---------|----------------------|-------------------|
+| **Timeout / hangs** | No network path to port 22 | SG source IP wrong/stale, missing IGW route, NACL deny | Security Group inbound rules |
+| **Connection refused** | Host reachable but port closed | sshd not running, wrong port, host firewall | Service status on instance |
+| **Permission denied (publickey)** | Network OK, auth failed | Wrong key, wrong username, key permissions | SSH key and username |
+| **Host key verification failed** | Client distrusts host identity | Instance rebuilt or IP reused | Remove old key from `~/.ssh/known_hosts` |
+
+---
+
+### Quick Diagnostic Commands
+
+**Test port reachability:**
 ```bash
 nc -vz -w 3 <public-ip> 22
 ```
+- Success: Port is open
+- Timeout: Network path blocked
+- Refused: Port closed or service down
 
-**Symptom interpretation:**
+**Verbose SSH for detailed debugging:**
+```bash
+ssh -vvv -i <key.pem> <username>@<public-ip>
+```
+- Shows each connection step
+- Reveals where failure occurs
 
-| Symptom | Likely Cause | Where to Investigate |
-|---------|--------------|---------------------|
-| **Timeout** | Network path issue | SG source IP wrong/missing, NACL blocking, routing issue, no public IP |
-| **Connection refused** | Port closed or service down | sshd not running, OS firewall blocking, wrong port |
-| **Connects but auth fails** | Credentials/permissions | Wrong username, wrong key, key permissions (should be 400 or 600) |
+**Check your current public IP:**
+```bash
+curl ifconfig.me
+```
+- Verify matches Security Group rule source
+
+---
+
+### Verification Checklist
+
+**Before declaring issue resolved, confirm:**
+
+✅ **SSH connection succeeds:**
+```bash
+ssh -i <key.pem> <username>@<public-ip>
+# Should: Connect and show shell prompt
+```
+
+✅ **Security Group properly restricted:**
+- Source limited to your IP `/32` (for labs)
+- Or appropriate CIDR for production
+
+✅ **Route table unchanged:**
+- Still has `0.0.0.0/0 → igw-...`
+
+✅ **Document changes:**
+- What was changed
+- Why it was changed
+- Restore to least-privilege access
+
+✅ **Test persists:**
+- Disconnect and reconnect
+- Verify stable connection
 
 ---
 
