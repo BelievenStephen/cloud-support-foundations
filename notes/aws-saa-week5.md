@@ -555,3 +555,488 @@ aws s3 rm s3://stephen-s3-perms-<DATE>/s3-accessdenied-lab.txt
 **Principle reinforced:** Explicit deny > Allow (regardless of policy source or breadth)
 
 ---
+
+## Mar 4, 2026
+
+### EC2 SSH Access Troubleshooting
+
+**Focus:**
+- SSH connectivity debugging
+- Network path verification
+- Timeout vs refused interpretation
+
+---
+
+### Lab Instance Configuration Review
+
+**Instance details:**
+- Instance ID: `i-<INSTANCE_ID>`
+- Name: `lab-unreachable`
+- Region: us-west-1
+- Availability Zone: us-west-1c
+
+**Network configuration:**
+- VPC: `vpc-<VPC_ID>`
+- Subnet: `subnet-<SUBNET_ID>`
+- Security Group: `sg-<SECURITY_GROUP_ID>`
+- Key pair: `lab-unreachable-key-pair`
+
+---
+
+### Public Connectivity Verification
+
+**Public IPv4 address:**
+- Current: `<PUBLIC_IP>` (54.x.x.x range)
+- Assigned: Yes
+
+**Subnet public access setting:**
+- Auto-assign public IPv4: Yes
+- Supports direct internet connectivity
+
+---
+
+### Subnet Classification Verification
+
+**Route table check:**
+- Associated route table: `rtb-<ROUTE_TABLE_ID>`
+
+**Routes present:**
+```
+Destination          Target
+172.31.0.0/16    →  local
+0.0.0.0/0        →  igw-<IGW_ID>
+```
+
+**Classification:** Public subnet (IGW route present)
+
+---
+
+### Security Group Analysis
+
+**Current SSH rule:**
+- Protocol: TCP
+- Port: 22
+- Source: `<SPECIFIC_IP>/32`
+
+**Implication:**
+- SSH only allowed from single IP address
+- If client IP changes, SSH will timeout
+- Most common cause of "worked yesterday, fails today"
+
+---
+
+### Network ACL Verification
+
+**Associated NACL:** `acl-<NACL_ID>`
+
+**Rules:**
+```
+Rule #    Type       Protocol    Port Range    Source/Dest       Allow/Deny
+100       All traffic All        All           0.0.0.0/0         ALLOW
+*         All traffic All        All           0.0.0.0/0         DENY
+```
+
+**Interpretation:**
+- Inbound: Allow all (rule 100)
+- Outbound: Allow all (rule 100)
+- NACL not blocking SSH in this configuration
+
+---
+
+### Status Checks Review
+
+**System status check:** Passed
+- AWS infrastructure health
+- Hypervisor, network, power
+
+**Instance status check:** Passed
+- Guest OS health
+- Network configuration
+- Software issues
+
+**Conclusion:** Network path and instance health confirmed good
+
+---
+
+### Support Mapping: EC2 SSH Connection Failed
+
+**Symptoms:**
+- SSH connection timeout
+- SSH connection refused
+- "Permission denied" errors
+
+---
+
+### Symptom Classification
+
+**SSH timeout:**
+- Connection hangs, then times out
+- No response from instance
+
+**Common causes:**
+- Security Group blocking (wrong source IP)
+- Instance has no public IP
+- Route table missing IGW route
+- Wrong target IP address
+
+---
+
+**SSH connection refused:**
+- Fast failure, explicit refusal
+- Instance reachable but port closed
+
+**Common causes:**
+- SSH daemon not running
+- Port 22 not listening
+- Host-based firewall blocking
+- Instance stopped or terminated
+
+---
+
+**Permission denied:**
+- Connection established but auth failed
+
+**Common causes:**
+- Wrong SSH key
+- Wrong username
+- Key permissions incorrect (should be 400)
+
+---
+
+### Troubleshooting Workflow: SSH Timeout
+
+**Step 1: Verify instance state**
+```
+EC2 Console → Instances → Check instance state
+```
+- Must be "running"
+- Not "stopped", "stopping", or "terminated"
+
+---
+
+**Step 2: Verify public IP exists**
+```
+EC2 Console → Instance → Networking tab → Public IPv4 address
+```
+- If no public IP: Cannot SSH from internet
+- If public IP present: Proceed to next step
+
+---
+
+**Step 3: Verify subnet is public**
+```
+VPC Console → Subnets → Select subnet → Route table
+VPC Console → Route tables → Routes tab
+```
+
+**Required route:**
+```
+0.0.0.0/0 → igw-...
+```
+
+**If missing:** Subnet is private, add IGW route or use bastion host
+
+---
+
+**Step 4: Verify Security Group allows SSH**
+```
+EC2 Console → Instance → Security tab → Security groups → Inbound rules
+```
+
+**Required rule:**
+```
+Type: SSH
+Protocol: TCP
+Port: 22
+Source: <YOUR_CURRENT_IP>/32 or 0.0.0.0/0
+```
+
+**Common issue:** Source IP is outdated (your IP changed)
+
+**Fix:** Update rule to "My IP" to automatically use current IP
+
+---
+
+**Step 5: Check Network ACL (if custom)**
+```
+VPC Console → Network ACLs → Select subnet's NACL
+```
+
+**Required:**
+- Inbound: Allow TCP 22
+- Outbound: Allow ephemeral ports (1024-65535)
+
+**Note:** Default NACL allows all traffic
+
+---
+
+**Step 6: Verify status checks**
+```
+EC2 Console → Instance → Status checks tab
+```
+
+**Both must pass:**
+- System status check
+- Instance status check
+
+**If failed:** Investigate instance health or reboot
+
+---
+
+### Troubleshooting Workflow: "Worked Yesterday, Fails Today"
+
+**Common causes and checks:**
+
+---
+
+**1) Instance public IP changed:**
+
+**When this happens:**
+- Instance stopped and started (not rebooted)
+- Elastic IP not associated
+
+**Check:**
+```
+EC2 Console → Instance → Networking → Public IPv4 address
+```
+
+**Compare with:** IP address you're trying to SSH to
+
+**Fix:** SSH to new IP, or associate Elastic IP for persistence
+
+---
+
+**2) Your client IP changed:**
+
+**When this happens:**
+- ISP changed your public IP
+- Switched networks (home to office)
+- Connected to VPN
+
+**Check current IP:**
+```bash
+curl ifconfig.me
+```
+
+**Compare with:** Security Group inbound rule source
+
+**Fix:** Update Security Group rule to current IP
+
+---
+
+**3) Security Group rule drift:**
+
+**What to check:**
+```
+EC2 Console → Security Groups → Select SG → Inbound rules
+```
+
+**Verify:**
+- SSH rule still exists
+- Port is 22
+- Protocol is TCP
+- Source includes your IP
+
+**Fix:** Re-add or correct the rule
+
+---
+
+**4) SSH key mismatch:**
+
+**Key pair assigned at launch:** `lab-unreachable-key-pair`
+
+**Verify you're using:**
+```bash
+ssh -i /path/to/lab-unreachable-key-pair.pem ec2-user@<PUBLIC_IP>
+```
+
+**Common mistakes:**
+- Using wrong key file
+- Key file permissions incorrect (must be 400)
+
+**Fix:**
+```bash
+chmod 400 /path/to/key.pem
+ssh -i /path/to/correct-key.pem ec2-user@<PUBLIC_IP>
+```
+
+---
+
+**5) Username mismatch:**
+
+**AMI-dependent usernames:**
+
+| AMI Type | Default Username |
+|----------|-----------------|
+| Amazon Linux | `ec2-user` |
+| Ubuntu | `ubuntu` |
+| Debian | `admin` or `debian` |
+| RHEL | `ec2-user` or `root` |
+| CentOS | `centos` |
+| Fedora | `fedora` |
+
+**Lab instance:** Amazon Linux → use `ec2-user`
+
+---
+
+**6) Instance-side issues:**
+
+**Less common, check if above all pass:**
+
+**SSH daemon not running:**
+```bash
+# From Systems Manager Session Manager or serial console
+sudo systemctl status sshd
+```
+
+**Disk full:**
+```bash
+df -h
+```
+
+**Host firewall:**
+```bash
+sudo iptables -L -n | grep 22
+```
+
+---
+
+### SSH Connection Testing
+
+**Basic connection test:**
+```bash
+ssh -i /path/to/key.pem ec2-user@<PUBLIC_IP>
+```
+
+**Verbose output for debugging:**
+```bash
+ssh -v -i /path/to/key.pem ec2-user@<PUBLIC_IP>
+```
+
+**Connection timeout test:**
+```bash
+nc -zv -w 5 <PUBLIC_IP> 22
+```
+
+**Expected:** Connection succeeded
+
+---
+
+### Verification After Fix
+
+**Successful SSH connection:**
+```bash
+ssh -i lab-unreachable-key-pair.pem ec2-user@<PUBLIC_IP>
+```
+
+**Expected output:**
+```
+Last login: [timestamp]
+[ec2-user@ip-... ~]$
+```
+
+**Connection established, shell prompt available**
+
+---
+
+### SSH Triage Order Summary
+
+**Systematic checklist:**
+
+1. **Instance running?**
+   - Check instance state in console
+
+2. **Has public IP?**
+   - Check networking tab for public IPv4
+
+3. **Subnet is public?**
+   - Route table has `0.0.0.0/0 → igw-...`
+
+4. **Security Group allows SSH?**
+   - Inbound rule: TCP 22 from your IP
+
+5. **NACL allows traffic?**
+   - Check inbound/outbound rules (if custom)
+
+6. **Status checks pass?**
+   - Both system and instance checks green
+
+7. **Using correct key?**
+   - Key pair matches instance
+
+8. **Using correct username?**
+   - AMI-appropriate username
+
+9. **SSH daemon running?**
+   - Check via Session Manager if accessible
+
+---
+
+### Timeout vs Refused Interpretation
+
+| Symptom | Network Layer | Common Cause | First Check |
+|---------|--------------|--------------|-------------|
+| **Timeout** | Network/routing | Security Group source mismatch | SG inbound rules |
+| **Timeout** | Network/routing | No public IP | Instance networking |
+| **Timeout** | Network/routing | Private subnet (no IGW) | Route table |
+| **Refused** | Transport/application | SSH daemon not running | Service status |
+| **Refused** | Transport/application | Port not listening | `ss -tulpn` |
+| **Refused** | Transport/application | Host firewall blocking | Firewall rules |
+
+---
+
+### Common Resolution Patterns
+
+| Issue | Symptom | Resolution |
+|-------|---------|------------|
+| **IP changed** | Timeout after working before | Update SG source to current IP |
+| **Wrong key** | Permission denied | Use correct key pair |
+| **Wrong username** | Permission denied | Use AMI-appropriate username |
+| **No public IP** | Timeout | Associate Elastic IP |
+| **Private subnet** | Timeout | Add IGW route or use bastion |
+| **SG too restrictive** | Timeout | Add rule for SSH from your IP |
+
+---
+
+### Key Takeaways
+
+**SSH timeout indicators:**
+- Security Group source IP doesn't match
+- No public IP on instance
+- Subnet not public (missing IGW route)
+- Wrong target IP address
+
+**SSH refused indicators:**
+- Instance reachable but SSH daemon down
+- Port 22 not listening
+- Host-based firewall blocking
+- Service misconfiguration
+
+**"Worked yesterday" checklist:**
+- Instance public IP changed (stop/start)
+- Your client IP changed (ISP/network switch)
+- Security Group rule modified or removed
+- Using wrong SSH key
+- Using wrong username for AMI
+
+**SSH triage priority:**
+1. Instance state (running)
+2. Public IP exists
+3. Subnet has IGW route
+4. Security Group allows TCP 22 from source
+5. NACL allows (if custom)
+6. Status checks pass
+7. Correct key and username
+8. SSH daemon running
+
+**Most common issues:**
+- Security Group source IP mismatch (timeout)
+- Wrong SSH key (permission denied)
+- Wrong username (permission denied)
+
+**Quick fixes:**
+- Update SG rule to "My IP" for automatic current IP
+- Associate Elastic IP to prevent IP changes on stop/start
+- Use verbose SSH for detailed connection debugging
+
+---
