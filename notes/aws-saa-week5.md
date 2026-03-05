@@ -1040,3 +1040,137 @@ Last login: [timestamp]
 - Use verbose SSH for detailed connection debugging
 
 ---
+
+## Mar 4, 2026 (continued on Mar 5)
+
+### Lab Exercise: Security Group SSH Blocking
+
+**Objective:** Demonstrate how Security Group source IP mismatch blocks SSH access
+
+---
+
+### Baseline Verification
+
+**Established working SSH connection:**
+```bash
+ssh -i lab-unreachable-key-pair.pem ec2-user@<PUBLIC_IP>
+```
+
+**Result:** Successfully connected
+
+**Security Group configuration:**
+- Security Group: `sg-<SECURITY_GROUP_ID>`
+- Inbound SSH rule: TCP/22 from `<MY_IP>/32`
+
+---
+
+### Breaking Change Applied
+
+**Modified Security Group inbound rule:**
+- Original source: `<MY_IP>/32`
+- Changed to: `<WRONG_IP>/32` (off by one digit)
+- Result: SSH source no longer matches actual client IP
+
+---
+
+### Testing After Change
+
+**Attempted SSH connection:**
+```bash
+ssh -i lab-unreachable-key-pair.pem ec2-user@<PUBLIC_IP>
+```
+
+**Error returned:**
+```
+ssh: connect to host <PUBLIC_IP> port 22: Operation timed out
+```
+
+**Key observation:**
+- Connection timeout, not connection refused
+- Indicates network path blocked (Security Group)
+- SSH daemon running but Security Group filtering packets
+
+---
+
+### Resolution Applied
+
+**Restored correct Security Group rule:**
+- Security Group: `sg-<SECURITY_GROUP_ID>`
+- Inbound rule: TCP/22 from correct source `<MY_IP>/32`
+- Method: EC2 Console → Security Groups → Edit inbound rules
+
+---
+
+### Verification After Fix
+
+**Re-tested SSH connection:**
+```bash
+ssh -i lab-unreachable-key-pair.pem ec2-user@<PUBLIC_IP>
+```
+
+**Result:** Successfully connected
+- Connection established immediately
+- Authentication succeeded
+- Shell prompt available
+
+---
+
+### Cleanup Verification
+
+**Final Security Group state:**
+- Inbound SSH rule source: `<MY_IP>/32`
+- Access remains restricted to single IP
+- No overly permissive rules (not `0.0.0.0/0`)
+
+---
+
+### Key Observations
+
+**Timeout vs refused behavior:**
+- Wrong SG source IP → timeout (packets dropped)
+- SSH daemon down → connection refused (packets reach host, port closed)
+
+**Security Group is stateful:**
+- Only inbound rule needed
+- Return traffic automatically allowed
+- No outbound rule modification required
+
+**Single digit difference matters:**
+- `<MY_IP>/32` works
+- `<WRONG_IP>/32` (one digit off) causes complete timeout
+- CIDR `/32` means exact IP match required
+
+**Troubleshooting lesson:**
+- Timeout to SSH usually indicates Security Group issue
+- First check: Compare current public IP with SG rule source
+- Quick fix: Use "My IP" option in console for automatic current IP
+
+---
+
+### Lab Workflow Summary
+
+| Step | Action | Result |
+|------|--------|--------|
+| 1. Baseline | SSH with correct SG rule | ✅ Success |
+| 2. Break | Change SG source to wrong IP | ❌ Timeout |
+| 3. Fix | Restore correct source IP | ✅ Success |
+| 4. Cleanup | Verify restricted access maintained | ✅ Complete |
+
+**Principle reinforced:** Security Group source IP must exactly match client's public IP for `/32` rules
+
+---
+
+### Real-World Scenario
+
+**"Worked yesterday, fails today" root cause:**
+1. ISP assigned you new public IP
+2. Security Group still has yesterday's IP
+3. Result: SSH times out
+4. Fix: Update Security Group to current IP
+
+**Prevention:**
+- Use Elastic IP for instances requiring consistent addressing
+- Use broader CIDR if multiple known IPs needed (e.g., office range)
+- Use "My IP" in console when adding rules (auto-updates)
+
+---
