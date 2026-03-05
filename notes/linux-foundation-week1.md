@@ -6162,3 +6162,613 @@ ls -l | cut -d" " -f3
   - Read and work with compressed files directly
 
 ---
+
+## Mar 5, 2026
+
+## Chapter 15: Network operations
+
+### Learning objectives
+
+By the end of this chapter, I should be able to:
+- Explain basic networking concepts, including types of networks and addressing issues
+- Configure network interfaces and use basic networking utilities (ifconfig, ip, ping, route, traceroute)
+- Use graphical and non-graphical browsers (Lynx, w3m, Firefox, Chrome, Epiphany)
+- Transfer files using graphical and text mode applications (scp, ftp, sftp, curl, wget)
+
+---
+
+### Introduction to networking
+
+**What is a network:**
+- Group of computers and computing devices connected through communication channels
+- Channels: cables or wireless media
+- Connected devices termed "nodes"
+- May be in same geographical area or spread across world
+
+**Network purposes:**
+- Allow connected devices to communicate with each other
+- Enable multiple users to share devices:
+  - Music and video servers
+  - Printers
+  - Scanners
+- Share and manage information:
+  - Databases
+  - File systems across computers
+
+**Organization networks:**
+- Most have internal network
+- Plus Internet connection for external communication
+
+**The Internet:**
+- Largest network in world
+- Can be called "network of networks"
+
+---
+
+### IP addresses
+
+**What they are:**
+- Unique network address identifier
+- Essential for routing packets through network
+- Devices must have at least one IP address
+
+**How data travels:**
+- Information exchanged using streams of small packets
+- Each packet contains piece of information
+- Packet components:
+  - Data buffers
+  - Headers with routing information:
+    - Where packet is going
+    - Where packet came from
+    - Sequence position in stream
+
+**Complexity:**
+- Networking protocols and software complicated
+- Must deal with diversity of machines and operating systems
+- Must support even very old standards
+
+---
+
+### IPv4 and IPv6
+
+**Two types available:**
+
+**IPv4 (version 4):**
+- Older, by far more widely used
+- Uses 32-bits for addresses
+- Only 4.3 billion unique addresses available
+- Many addresses allotted/reserved but not actually used
+- Considered inadequate for future needs
+- Number of devices increased enormously in recent years
+
+**IPv6 (version 6):**
+- Newer, designed to get past IPv4 limitations
+- Uses 128-bits for addresses
+- Allows for 3.4 × 10³⁸ unique addresses
+- Provides more unique addresses for larger networks
+- Complex to migrate to IPv6
+- Two protocols don't always inter-operate well
+- Migration requires significant effort
+- Not as fast as originally intended
+
+**Why IPv4 hasn't disappeared:**
+- NAT (Network Address Translation) widely used
+- Makes many more addresses available
+- Enables sharing one IP address among many local computers
+- Each local computer has unique address only seen on local network
+- Used in organizational settings and simple home networks
+- Example: home router gets one external address from ISP
+- Router issues each home device individual local address (invisible outside)
+
+---
+
+### Decoding IPv4 addresses
+
+**Structure:**
+- 32-bit address divided into four 8-bit sections (octets)
+
+**Example:**
+```
+IP address:    172    .    16    .    31    .    46
+Bit format: 10101100.00010000.00011111.00101110
+```
+
+**Note:** Octet = byte
+
+**Network address classes:**
+- Five classes: A, B, C, D, E
+- Classes A, B, C divided into:
+  - Net ID (Network addresses)
+  - Host ID (Host address)
+- Net ID identifies network
+- Host ID identifies host in network
+- Class D: special multicast applications (broadcast to multiple computers)
+- Class E: reserved for future use
+
+**Note:** Octet value can range from 0 to 255
+
+---
+
+### Class A network addresses
+
+**Structure:**
+- First octet: Net ID
+- Other three octets: Host ID
+- First bit of first octet always set to zero
+- Only 7 bits for unique network numbers
+
+**Limitations:**
+- Maximum 126 Class A networks (0000000 and 1111111 reserved)
+- Only feasible when very few unique networks with large numbers of hosts
+- Classes B and C added as Internet expanded
+
+**Capacity:**
+- Each Class A network: up to 16.7 million unique hosts
+- Range: 1.0.0.0 to 127.255.255.255
+
+---
+
+### Class B network addresses
+
+**Structure:**
+- First two octets: Net ID
+- Last two octets: Host ID
+- First two bits of first octet always set to binary 10
+- Maximum 16,384 (14-bits) Class B networks
+- First octet values: 128 to 191
+
+**Purpose:**
+- Expanded number of networks
+- Soon became clear further level needed
+
+**Capacity:**
+- Each Class B network: maximum 65,536 unique hosts
+- Range: 128.0.0.0 to 191.255.255.255
+
+---
+
+### Class C network addresses
+
+**Structure:**
+- First three octets: Net ID
+- Last octet: Host ID
+- First three bits of first octet set to binary 110
+- Almost 2.1 million (21-bits) Class C networks available
+- First octet values: 192 to 223
+
+**Common usage:**
+- Most common for smaller networks
+- Networks without many unique hosts
+
+**Capacity:**
+- Each Class C network: up to 256 (8-bits) unique hosts
+- Range: 192.0.0.0 to 223.255.255.255
+
+---
+
+### IP address allocation
+
+**How addresses are obtained:**
+- Range requested from Internet Service Provider (ISP)
+- Requested by organization's network administrator
+- Choice of class depends on:
+  - Network size
+  - Expected growth needs
+- If NAT in operation (home network): only one externally visible address
+
+**Assignment methods:**
+
+**Manual assignment:**
+- Adds static (never changing) addresses
+
+**Dynamic assignment:**
+- Addresses can change every reboot or more often
+- Dynamic Host Configuration Protocol (DHCP) used
+
+---
+
+### Name resolution
+
+**What it does:**
+- Converts numerical IP address to human-readable format (hostname)
+
+**Example:**
+- IP: 3.13.31.214
+- Hostname: linuxfoundation.org
+
+**Benefits:**
+- Hostnames much easier to remember
+- Given IP address, can obtain corresponding hostname
+- Easier to access machine when can type hostname instead of IP
+
+**View system hostname:**
+```bash
+hostname
+```
+- With no argument: displays hostname
+- With argument: tries to change hostname (root users only)
+
+**Special hostname:**
+- `localhost` associated with IP 127.0.0.1
+- Describes machine you're currently on
+- Normally has additional network-related IP addresses
+
+---
+
+### Network configuration files
+
+**Location:**
+- Essential to ensure interfaces function correctly
+- Located in `/etc` directory tree
+- Exact files historically dependent on distribution and version
+
+**Historical locations:**
+- **Debian family:** `/etc/network/`
+- **Red Hat and SUSE family:** `/etc/sysconfig/network`
+
+**Modern approach: Network Manager**
+- Emphasizes use of Network Manager
+- Rather than managing files in `/etc`
+- Graphical versions look different across distributions
+
+**Network Manager utilities:**
+- `nmtui` - varies almost not at all across distributions
+- `nmcli` - command line interface, even more sparse
+- If proficient with GUIs, use them
+- Lower level utilities may make life easier on variety of systems
+
+**Recent Ubuntu distributions:**
+- Include `netplan` (turned on by default)
+- Supplants Network Manager
+- No other distribution has shown interest
+- Can easily be disabled
+- Will be ignored in this course
+
+---
+
+### Network interfaces
+
+**What they are:**
+- Connection channel between device and network
+
+**Types:**
+- **Physical:** Through network interface card (NIC)
+- **Abstract:** Implemented as software
+
+**Characteristics:**
+- Can have multiple network interfaces operating at once
+- Specific interfaces can be brought up (activated) or down (deactivated)
+
+**Reporting tools:**
+- `ip` and `ifconfig` utilities report interface information
+- May need to run as superuser
+- May need to give full path: `/sbin/ifconfig` on some distributions
+
+**ip vs ifconfig:**
+- `ip` newer than `ifconfig`
+- `ip` has far more capabilities
+- `ip` output uglier to human eye
+- Some distributions don't install older `net-tools` package (contains `ifconfig`)
+- Would need to install if want to use `ifconfig`
+
+---
+
+### The ip utility
+
+**View IP address:**
+```bash
+/sbin/ip addr show
+```
+
+**View routing information:**
+```bash
+/sbin/ip route show
+```
+
+**Capabilities:**
+- Very powerful program
+- Can do many things
+
+**Older alternatives:**
+- `ifconfig` and `route` utilities
+- Often used for similar tasks
+- More specific utilities
+- See man pages for details
+
+---
+
+### ping
+
+**What it does:**
+- Check whether machine on network can receive and send data
+- Confirms remote host is online and responding
+
+**Usage:**
+```bash
+ping <hostname>
+```
+
+**Common uses:**
+- Network testing and management
+- Can increase network load unacceptably
+
+**Control execution:**
+- Abort with `CTRL-C`
+- Use `-c` option to limit number of packets
+- Summary displayed when execution stops
+
+**Note:** Some hosts refuse to answer ping requests
+
+---
+
+### route
+
+**Network routing basics:**
+- Network requires connection of many nodes
+- Data moves through series of routers
+- Potentially across multiple networks
+- Servers maintain routing tables with node addresses
+- IP routing protocols enable routers to build forwarding table
+- Table correlates final destinations with next hop addresses
+
+**route utility:**
+- View or change IP routing table
+- Add, delete, or modify specific (static) routes
+- Routes to specific hosts or networks
+
+**Common operations:**
+
+| Task | Command |
+|------|---------|
+| Show current routing table | `route -n` or `ip route` |
+| Add static route | `route add -net address` or `ip route add` |
+| Delete static route | `route del -net address` or `ip route del` |
+
+---
+
+### traceroute
+
+**What it does:**
+- Inspect route data packet takes to reach destination
+- Quite useful for troubleshooting network delays and errors
+- Can isolate connectivity issues between hops
+- Helps resolve issues faster
+
+**Usage:**
+```bash
+traceroute <address>
+```
+- Prints route taken by packet to reach network host
+
+---
+
+### More networking tools
+
+**Purpose:**
+- Very useful for monitoring and debugging network problems
+- Network connectivity issues
+- Network traffic issues
+
+**Common networking tools:**
+
+| Tool | Description |
+|------|-------------|
+| `ethtool` | Queries network interfaces, can set parameters like speed |
+| `netstat` | Displays all active connections and routing tables; useful for monitoring performance and troubleshooting |
+| `nmap` | Scans open ports on network; important for security analysis |
+| `tcpdump` | Dumps network traffic for analysis |
+| `iptraf` | Monitors network traffic in text mode |
+| `mtr` | Combines functionality of ping and traceroute; continuously updated display |
+| `dig` | Tests DNS workings; good replacement for host and nslookup |
+
+---
+
+### Graphical and non-graphical browsers
+
+**What browsers do:**
+- Retrieve, transmit, and explore information resources
+- Usually on World Wide Web
+
+**Common graphical browsers in Linux:**
+- Firefox
+- Google Chrome
+- Chromium
+- Konqueror
+- Opera
+
+**Non-graphical browsers:**
+- Used when no graphical environment available
+- Or have reasons not to use graphical environment
+- Still need to access web resources
+
+**Common non-graphical browsers:**
+- **lynx** - configurable text-based web browser; earliest such browser, still in use
+- **elinks** - based on lynx; can display tables and frames
+- **w3m** - another text-based web browser with many features
+
+---
+
+### wget
+
+**When to use:**
+- Need to download files and information
+- Browser not best choice
+- Want to download multiple files/directories
+- Want to perform action from command line or script
+
+**Capabilities:**
+- Large file downloads
+- Recursive downloads (web page refers to other pages, all downloaded at once)
+- Password-required downloads
+- Multiple file downloads
+
+**Basic usage:**
+```bash
+wget <url>
+```
+- Downloads web page
+- Can read as local file using graphical or non-graphical browser
+
+---
+
+### curl
+
+**What it does:**
+- Obtain information about URL (such as source code)
+- Read information from command line or script
+- Save contents of web page to file (like wget)
+
+**Read URL:**
+```bash
+curl <URL>
+```
+
+**Example:**
+```bash
+curl http://www.linuxfoundation.org
+```
+
+**Save to file:**
+```bash
+curl -o saved.html http://www.mysite.com
+```
+- Contents of main index file saved in saved.html
+
+---
+
+### FTP (File Transfer Protocol)
+
+**What it is:**
+- Well-known, popular method for transferring files
+- Uses Internet
+- Built on client-server model
+- Can be used within browser or with stand-alone clients
+
+**History:**
+- One of oldest methods of network data transfer
+- Dates back to early 1970s
+
+**Status:**
+- Considered inadequate for modern needs
+- Intrinsically insecure
+- Still in use when security not a concern (anonymous FTP)
+- Many websites (like kernel.org) abandoned its use
+
+---
+
+### FTP clients
+
+**What they enable:**
+- Transfer files with remote computers using FTP protocol
+- Can be graphical or command line tools
+
+**Examples:**
+- **Filezilla** - allows drag-and-drop between hosts
+- **Web browsers** - all support FTP with URL like `ftp://ftp.kernel.org`
+
+**Command line FTP clients:**
+- ftp
+- sftp
+- ncftp
+- yafc (Yet Another FTP Client)
+
+**Why FTP fallen into disfavor:**
+- Intrinsically insecure
+- Passwords and credentials transmitted without encryption
+- Prone to interception
+- Removed in favor of rsync and web browser https access
+
+**Alternative: sftp**
+- Very secure mode of connection
+- Uses Secure Shell (ssh) protocol
+- Encrypts data
+- Sensitive information transmitted more securely
+- Does NOT work with anonymous FTP (guest credentials)
+
+---
+
+### SSH (Secure Shell)
+
+**What it is:**
+- Cryptographic network protocol
+- Used for secure data communication
+- Used for remote services
+- Very useful for administering systems not easily physically available
+
+**Basic login (same username):**
+```bash
+ssh some_system
+```
+- Prompts for remote password
+- Can configure for remote access without typing password
+
+**Login as another user:**
+```bash
+ssh -l someone some_system
+```
+OR
+```bash
+ssh someone@some_system
+```
+
+**Run command on remote system:**
+```bash
+ssh some_system my_command
+```
+
+---
+
+### Copying files securely with scp
+
+**What it is:**
+- Secure Copy (scp)
+- Move files securely between two networked hosts
+- Uses SSH protocol for transferring data
+
+**Copy local file to remote system:**
+```bash
+scp <localfile> <user@remotesystem>:/home/user/
+```
+- Prompted for remote password
+- Can configure to not prompt for password each transfer
+
+---
+
+### Chapter 15 summary
+
+**Key concepts covered:**
+
+- **IP addressing:**
+  - IP address = unique logical network address assigned to device
+  - IPv4 uses 32-bits for addresses
+  - IPv6 uses 128-bits for addresses
+  - Every IP address contains network and host address field
+  - Five classes of network addresses: A, B, C, D, E
+
+- **DNS:**
+  - Domain Name System converts Internet domain/host names to IP addresses
+
+- **Network configuration:**
+  - `ifconfig` displays current active network interfaces
+  - `ip addr show` and `ip route show` view IP address and routing information
+
+- **Network testing:**
+  - `ping` checks if remote host alive and responding
+  - `route` utility manages IP routing
+  - Networking tools monitor and debug network problems
+
+- **Browsers:**
+  - Graphical: Firefox, Google Chrome, Chromium, Epiphany
+  - Non-graphical/text: Lynx, Links, w3m
+
+- **File transfer tools:**
+  - `wget` downloads webpages
+  - `curl` obtains information about URLs
+  - FTP (File Transfer Protocol) transfers files over network
+  - Command line FTP clients: ftp, sftp, ncftp, yafc
+
+- **Remote access:**
+  - `ssh` runs commands on remote systems
+  - `scp` securely copies files between systems
+
+---
