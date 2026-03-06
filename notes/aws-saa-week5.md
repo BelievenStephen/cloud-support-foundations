@@ -1174,3 +1174,110 @@ ssh -i lab-unreachable-key-pair.pem ec2-user@<PUBLIC_IP>
 - Use "My IP" in console when adding rules (auto-updates)
 
 ---
+
+## Mar 6, 2026
+
+## VPC routing-first triage
+
+### Lab instance review
+
+**Instance examined:** `lab-unreachable`
+
+**Network configuration captured:**
+- Subnet ID: `subnet-0ed1fa4a40bc62a26`
+- Route table: `rtb-0f874e22f221b539f`
+- Security group: `sg-083e0204d570303c6`
+- Public IPv4: `<REDACTED>`
+- Private IPv4: `172.31.12.41`
+- Availability Zone: `us-west-1c`
+
+---
+
+### Public subnet verification
+
+**Route table analysis:**
+- Confirmed subnet is public-routable
+- Route table contains:
+  - `0.0.0.0/0 → igw-0d2b4afba531a9b3b` (internet gateway route)
+  - `172.31.0.0/16 → local` (VPC local route)
+
+**Subnet settings:**
+- Auto-assign public IPv4: **Yes**
+- Supports launching instances with internet reachability (when SGs allow)
+
+---
+
+### Subnet type identification rules
+
+**Public subnet proven by:**
+- Route table has `0.0.0.0/0 → igw-...`
+- Instance has public IPv4 or Elastic IP
+
+**Private subnet with egress proven by:**
+- Route table has `0.0.0.0/0 → nat-...` (NOT IGW)
+- Instances usually have no public IP
+
+---
+
+### IGW egress requirements
+
+**Critical requirement:**
+- Instance MUST have public IPv4 or Elastic IP
+- Without public IP, instance cannot use IGW for outbound internet
+
+---
+
+### NAT Gateway placement rules
+
+**NAT Gateway requirements:**
+- Must live in public subnet
+- NAT's subnet must route `0.0.0.0/0 → IGW`
+- Must have Elastic IP assigned
+
+---
+
+### Routing-first triage order
+
+**Systematic troubleshooting approach:**
+
+1. **Subnet ID** → Identify which subnet instance is in
+2. **Route table default route target** → Check `0.0.0.0/0` destination:
+   - IGW (public path)
+   - NAT (private with egress)
+   - Missing (no internet route)
+3. **Public IPv4 presence** → If IGW path, verify instance has public IP
+4. **Security Group egress** → Check outbound rules
+5. **NACL** → Check stateless rules (both directions)
+6. **DNS** → Test with `dig`
+7. **HTTP** → Test with `curl`
+
+---
+
+### Common "egress broken" failure modes
+
+**Typical issues encountered:**
+
+| Failure Mode | Symptom |
+|--------------|---------|
+| **Missing `0.0.0.0/0` route** | No default route in route table |
+| **Wrong target** | Deleted/detached IGW or deleted NAT Gateway |
+| **Wrong subnet expectation** | Private instance trying to use IGW without public IP |
+| **SG/NACL blocking** | Firewall rules blocking traffic |
+
+---
+
+### Key learnings summary
+
+**Routing fundamentals:**
+- Route table determines path (IGW vs NAT vs local only)
+- Public IP required for IGW path
+- NAT Gateway enables private instances to reach internet
+- NAT Gateway itself must be in public subnet with EIP
+
+**Troubleshooting strategy:**
+- Start with routing (route table inspection)
+- Verify path requirements (public IP for IGW, NAT for private)
+- Then check firewalls (SG, NACL)
+- Finally test connectivity (DNS, HTTP)
+
+---
