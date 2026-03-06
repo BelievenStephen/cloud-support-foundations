@@ -1281,3 +1281,332 @@ ssh -i lab-unreachable-key-pair.pem ec2-user@<PUBLIC_IP>
 - Finally test connectivity (DNS, HTTP)
 
 ---
+
+## Mar 6, 2026 (continued)
+
+### Practice Exam Lessons (Tutorials Dojo Free Sampler)
+
+**Focus:**
+- Identifying knowledge gaps
+- Service selection patterns
+- Common AWS exam traps
+
+---
+
+### Streaming with ordering requirements
+
+**Question pattern:** Durable, no loss, no duplicates, in-order processing
+
+**Correct choice: Kinesis Data Streams**
+- Guarantees ordering per shard (using partition key)
+- Durable (data replicated across AZs)
+- No data loss
+- Exactly-once processing possible with proper consumer design
+
+**Why not SQS Standard:**
+- Does NOT guarantee ordering
+- Can deliver duplicates (at-least-once delivery)
+- Best-effort ordering only
+
+**Key distinction:** Need ordering → Kinesis Data Streams (with partition key)
+
+---
+
+### Load balancer Layer 7 features
+
+**Question pattern:** Host-based routing, path-based routing, gRPC support
+
+**Correct choice: Application Load Balancer (ALB)**
+- Operates at Layer 7 (HTTP/HTTPS)
+- Host-based routing: Route by `Host` header
+- Path-based routing: Route by URL path
+- gRPC support (HTTP/2)
+- WebSocket support
+
+**Why not Network Load Balancer (NLB):**
+- Operates at Layer 4 (TCP/UDP)
+- Does NOT have Layer 7 routing rules
+- No host/path inspection
+- Use for: TCP/UDP traffic, extreme performance, static IP
+
+**Key distinction:** Need L7 features → ALB; Need L4 performance → NLB
+
+---
+
+### S3 cost optimization patterns
+
+**Question pattern:** Automatically move old objects to cheaper storage
+
+**Correct choice: S3 Lifecycle rules**
+- Automatically transition objects between storage classes
+- Based on age (days since creation)
+- Example: S3 Standard → S3 Standard-IA → S3 Glacier after X days
+
+**Common lifecycle patterns:**
+
+| Age | Action |
+|-----|--------|
+| 30 days | Transition to S3 Standard-IA |
+| 90 days | Transition to S3 Glacier Flexible Retrieval |
+| 180 days | Transition to S3 Glacier Deep Archive |
+| 365 days | Delete object (if appropriate) |
+
+**Key takeaway:** Lifecycle rules = automated storage class transitions
+
+---
+
+### Multi-domain HTTPS on ALB
+
+**Question pattern:** Serve multiple domains (different root domains) on single ALB with HTTPS
+
+**Correct choice: SNI (Server Name Indication)**
+- Attach multiple TLS certificates to single ALB HTTPS listener
+- ALB uses SNI to select correct certificate based on requested hostname
+- Client sends hostname in TLS handshake
+
+**Why not wildcards:**
+- `*.example.com` only covers subdomains of example.com
+- Does NOT cover different root domains (example.com, another.com)
+
+**Why not SAN certificates:**
+- Subject Alternative Names can cover multiple domains
+- BUT requires reissuing certificate when adding new domains
+- Not as flexible as SNI with multiple certs
+
+**Key distinction:** Multiple root domains → SNI with multiple certs on single listener
+
+---
+
+### Shared session storage requirements
+
+**Question pattern:** Sub-millisecond latency, shared across many instances, session data
+
+**Correct choice: ElastiCache**
+- In-memory data store
+- Sub-millisecond latency
+- Shared across all instances
+- Two engines: Redis or Memcached
+
+**Memcached advantages:**
+- Multithreaded (better CPU utilization)
+- Auto Discovery (automatic node replacement)
+- Simpler architecture
+- Good for: Simple caching, session storage
+
+**Redis advantages:**
+- Persistence
+- Replication
+- Advanced data structures
+- Pub/sub
+- Good for: Complex caching, leaderboards, real-time analytics
+
+**Why not sticky sessions:**
+- Sticky sessions pin user to specific instance
+- Does NOT meet "shared session store" requirement
+- Session data lost if instance fails
+
+**Key distinction:** Shared session store → ElastiCache (Memcached for simplicity, Redis for persistence)
+
+---
+
+### Service quota monitoring
+
+**Question pattern:** Monitor AWS service limits, automated notifications
+
+**Correct choice: Trusted Advisor Service Limits check**
+- Monitors service quotas
+- Scheduled Lambda refresh (every 24 hours)
+- Notifications via EventBridge → SNS
+
+**Architecture:**
+```
+Trusted Advisor Service Limits check
+    ↓
+EventBridge (scheduled, e.g., daily)
+    ↓
+Lambda (refresh Trusted Advisor)
+    ↓
+EventBridge (Trusted Advisor check result)
+    ↓
+SNS (notify on approaching limits)
+```
+
+**Why not AWS Config:**
+- Config rules designed for compliance monitoring
+- Not optimized for quota/limit monitoring
+- More expensive for this use case
+
+**Key distinction:** Service quota monitoring → Trusted Advisor + EventBridge + Lambda
+
+---
+
+### Private traffic between VPCs (different regions)
+
+**Question pattern:** VPC-to-VPC communication across regions, private traffic
+
+**Correct choice: Inter-region VPC peering**
+- Direct network connection between VPCs in different regions
+- Traffic stays on AWS backbone (never traverses internet)
+- Requires route table updates in both VPCs
+- No single point of failure
+- No bandwidth bottleneck
+
+**Required configuration:**
+1. Create VPC peering connection
+2. Accept peering connection in peer region
+3. Update route tables in both VPCs to point to peering connection
+4. Update Security Groups to allow traffic from peer CIDR
+
+**Why not NAT Gateway:**
+- NAT Gateway for outbound internet access
+- NOT for VPC-to-VPC communication
+
+**Why not VPC Endpoints:**
+- VPC Endpoints for AWS services (S3, DynamoDB, etc.)
+- NOT for inter-region VPC-to-VPC traffic
+
+**Key distinction:** Inter-region VPC-to-VPC → VPC peering + route table updates
+
+---
+
+### EC2 hibernation for faster resume
+
+**Question pattern:** Quick resume for Windows apps, no extra compute cost
+
+**Correct choice: EC2 hibernation**
+- Saves RAM contents to EBS
+- Faster resume than cold start
+- No compute charges while hibernated (only EBS charges)
+
+**Critical limitation:**
+- Must enable hibernation AT LAUNCH
+- CANNOT enable after instance created
+
+**Hibernation vs Stop:**
+
+| Attribute | Stop | Hibernate |
+|-----------|------|-----------|
+| **RAM contents** | Lost | Saved to EBS |
+| **Resume time** | Slower (boot OS) | Faster (restore RAM) |
+| **When to use** | General stopping | Quick resume needed |
+| **Configure when** | Anytime | Must be at launch |
+
+**Key takeaway:** Need quick resume → Plan for hibernation at launch
+
+---
+
+### Block country access behind ALB
+
+**Question pattern:** Block entire country from accessing application
+
+**Correct choice: AWS WAF geo match condition**
+- Create Web ACL with geo match rule
+- Associate Web ACL with ALB
+- Block or allow based on country of origin
+
+**Configuration:**
+1. Create Web ACL in AWS WAF
+2. Add geo match condition (select countries to block)
+3. Set rule action to "Block"
+4. Associate Web ACL with ALB
+
+**Why not NACL:**
+- Country-based blocking via NACL requires maintaining IP range lists
+- Hard to maintain (IP ranges change)
+- Not recommended approach
+
+**Why not Security Group:**
+- Security Groups don't support geo-blocking
+- Only IP-based rules
+
+**Key distinction:** Geo-blocking → AWS WAF geo match + Web ACL on ALB
+
+---
+
+### Immutable long-term log retention
+
+**Question pattern:** Tamper-resistant, long-term retention (e.g., 5 years), compliance
+
+**Correct choice: S3 Glacier Vault Lock**
+- Enforces immutable retention policy
+- Cannot be changed once locked (even by root account)
+- Compliance mode: Cannot delete or modify for retention period
+- Common use: Regulatory compliance (SEC, FINRA, HIPAA)
+
+**Vault Lock workflow:**
+1. Initiate Vault Lock with retention policy
+2. Test during 24-hour window (can abort)
+3. Complete Vault Lock (becomes immutable)
+4. Policy cannot be changed or deleted
+
+**Why not S3 MFA Delete:**
+- MFA Delete requires MFA to delete objects
+- Does NOT guarantee immutability
+- Root account with MFA can still delete
+- Not sufficient for compliance requirements
+
+**Why not S3 Object Lock:**
+- S3 Object Lock is for S3 Standard/IA
+- Question specifically about Glacier compliance
+
+**Key distinction:** Compliance-grade immutability → S3 Glacier Vault Lock
+
+---
+
+### IAM policy evaluation with conditions
+
+**Question pattern:** Deny specific IPs while allowing all others
+
+**Policy evaluation reminder:**
+- **Explicit Deny always wins** (overrides all allows)
+- Check for deny before allow
+
+**Condition example:**
+```json
+{
+  "Effect": "Deny",
+  "Action": "s3:*",
+  "Resource": "*",
+  "Condition": {
+    "IpAddress": {
+      "aws:SourceIp": "203.0.113.0/24"
+    }
+  }
+}
+```
+
+**This policy:**
+- Denies all S3 actions
+- Only when source IP is in 203.0.113.0/24 range
+- All other IPs unaffected (evaluated by other statements)
+
+**Key principle:** Explicit deny + condition = conditional blocking
+
+---
+
+### Practice exam key patterns
+
+**Service selection patterns learned:**
+
+| Requirement | Correct Service |
+|-------------|----------------|
+| Ordering + no duplicates | Kinesis Data Streams |
+| Layer 7 routing | ALB |
+| Auto storage transition | S3 Lifecycle |
+| Multi-domain HTTPS | SNI on ALB |
+| Shared sessions | ElastiCache |
+| Service quota alerts | Trusted Advisor + EventBridge |
+| Inter-region VPC traffic | VPC Peering |
+| Quick resume | EC2 Hibernation (plan at launch) |
+| Geo-blocking | AWS WAF |
+| Immutable retention | Glacier Vault Lock |
+
+**Common exam traps:**
+- SQS Standard does NOT guarantee ordering
+- NLB does NOT have Layer 7 features
+- Sticky sessions ≠ shared session store
+- NAT Gateway NOT for VPC-to-VPC
+- MFA Delete NOT sufficient for compliance immutability
+- Hibernation must be enabled at launch
+
+---
