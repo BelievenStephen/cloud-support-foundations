@@ -1610,3 +1610,132 @@ SNS (notify on approaching limits)
 - Hibernation must be enabled at launch
 
 ---
+
+## Mar 6, 2026 (continued on Mar 7)
+
+### Lab Exercise: Breaking Egress with Route Table Changes
+
+**Objective:** Demonstrate impact of removing default route on instance connectivity
+
+---
+
+### Baseline Verification
+
+**Instance connectivity test:**
+```bash
+curl -I --connect-timeout 5 --max-time 10 http://example.com
+```
+
+**Result:** HTTP response received (no timeout)
+
+**HTTPS attempt:**
+```bash
+curl -I https://example.com
+```
+
+**Result:** Failed with `curl: (60) SSL certificate problem`
+- Missing CA trust on instance
+- Used HTTP for egress testing instead
+
+**Route table state:**
+- Route table: `rtb-0f874e22f221b539f`
+- Default route: `0.0.0.0/0 → igw-0d2b4afba531a9b3b`
+- Local route: `172.31.0.0/16 → local` (unchanged)
+
+---
+
+### Breaking Change: Delete Default Route
+
+**Action taken:**
+- Deleted `0.0.0.0/0 → igw-...` route from route table
+- Left only local route (`172.31.0.0/16 → local`)
+
+**Immediate impact:**
+- Existing SSH session dropped
+- New SSH attempts to `<REDACTED>:22` timed out
+- Instance lost both inbound and outbound internet connectivity
+
+**Key observation:**
+- Removing IGW route breaks both directions
+- SSH cannot establish (inbound broken)
+- HTTP requests cannot reach internet (outbound broken)
+- Routing broken = complete internet isolation
+
+---
+
+### Resolution Applied
+
+**Restored default route:**
+- Re-added `0.0.0.0/0 → igw-0d2b4afba531a9b3b`
+- Exact same IGW as original configuration
+
+---
+
+### Verification After Fix
+
+**SSH connectivity:**
+```bash
+ssh -i lab-unreachable-key-pair.pem ec2-user@<REDACTED>
+```
+**Result:** Successfully connected
+
+**HTTP egress test:**
+```bash
+curl -I http://example.com
+```
+**Result:** Worked immediately after route restoration
+
+**HTTPS status:**
+- Still shows `curl: (60)` SSL certificate problem
+- Due to missing CA trust on instance (not routing issue)
+
+---
+
+### Cleanup Confirmation
+
+**Final route table state:**
+- Back to original configuration
+- IGW default route: `0.0.0.0/0 → igw-0d2b4afba531a9b3b`
+- Local route: `172.31.0.0/16 → local`
+
+---
+
+### Key Observations
+
+**Impact of missing default route:**
+- Complete loss of internet connectivity (inbound and outbound)
+- Existing connections immediately dropped
+- New connections time out
+
+**Route table is bidirectional:**
+- Same route used for inbound (SSH from internet to instance)
+- And outbound (HTTP from instance to internet)
+- Removing route breaks both directions
+
+**Troubleshooting lesson:**
+- "Worked yesterday, fails today" → Check route table changes
+- Timeout on both SSH and HTTP → Likely routing issue
+- First check: Verify `0.0.0.0/0` route exists and points to correct target
+
+**Failure symptom interpretation:**
+
+| Symptom | Likely Cause |
+|---------|--------------|
+| SSH + HTTP both timeout | Missing/wrong default route |
+| SSH works, HTTP fails | SG/NACL blocking outbound |
+| SSH fails, HTTP works | SG/NACL blocking SSH inbound only |
+
+---
+
+### Lab Workflow Summary
+
+| Step | Action | SSH Result | HTTP Result |
+|------|--------|------------|-------------|
+| 1. Baseline | Default route via IGW | ✅ Success | ✅ Success |
+| 2. Break | Delete `0.0.0.0/0` route | ❌ Timeout | ❌ No internet |
+| 3. Fix | Restore IGW route | ✅ Success | ✅ Success |
+| 4. Cleanup | Verify original state | ✅ Complete | ✅ Complete |
+
+**Principle reinforced:** Route table default route is critical for both inbound and outbound internet connectivity
+
+---
