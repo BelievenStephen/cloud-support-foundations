@@ -10,7 +10,7 @@ Restore outbound internet connectivity for an EC2 instance that cannot reach ext
 
 **Example checks:**
 ```bash
-curl -I --connect-timeout 5 --max-time 10 http://example.com
+curl -I --connect-timeout 5 --max-time 10 http://example.cominstance-no-internet.md
 # Times out or hangs
 
 dig example.com +short
@@ -84,6 +84,58 @@ VPC → NAT gateways → Check NAT state and subnet
   - NAT's subnet route table must have `0.0.0.0/0 → igw-...`
 
 **Common mistake:** NAT Gateway placed in private subnet (cannot reach internet)
+
+---
+
+### 1A) Route Table Failure Mode (Default Route Missing or Incorrect)
+
+**When to use:** `curl` times out and SG egress looks correct. Check subnet route table default route before deeper DNS/app checks.
+
+**Console path:**
+```
+VPC → Subnets → Select subnet → Route table tab → Click route table ID → Routes tab
+```
+
+**What to inspect:**
+- Is there a `0.0.0.0/0` route?
+- What is the target (IGW vs NAT)?
+- Is the target resource present and healthy?
+
+---
+
+**Decision table:**
+
+| Route Table Default Route | Instance Addressing | Likely Outcome | What to Do Next |
+|---------------------------|---------------------|----------------|-----------------|
+| **Missing `0.0.0.0/0`** | Any | No egress path. `curl` times out. Public SSH may also fail if this is public subnet route table. | Restore correct `0.0.0.0/0` route for intended design. |
+| **`0.0.0.0/0 → igw-...`** | Instance has **public IPv4/EIP** | Public subnet egress should work (assuming SG/NACL OK). | If still failing: verify SG egress → NACL → DNS. |
+| **`0.0.0.0/0 → igw-...`** | Instance has **no public IPv4/EIP** | Instance will NOT reach internet directly via IGW. `curl` times out. | Use NAT design instead, or attach EIP/public IPv4 if must be public. |
+| **`0.0.0.0/0 → nat-...`** | Instance typically **no public IPv4** | Private subnet egress should work if NAT is healthy. | Verify NAT state = Available, has EIP, and NAT subnet is public (has `0.0.0.0/0 → igw-...`). |
+| **`0.0.0.0/0 → nat-...`** but NAT deleted/unavailable/wrong subnet | Any | No egress from private subnet. `curl` times out. | Fix/replace NAT, ensure it's in public subnet with IGW route and has EIP. |
+
+---
+
+**Verification test (from instance):**
+```bash
+# Prefer HTTP to avoid TLS trust issues on minimal AMIs
+curl -I --connect-timeout 5 --max-time 10 http://example.com
+```
+
+**Expected:** HTTP response (200/301/302), not timeout
+
+---
+
+**Important notes:**
+
+**TLS certificate errors vs routing:**
+- If `curl -I https://example.com` fails with `curl: (60) SSL certificate problem`, treat as client CA trust issue, NOT routing
+- Use `http://example.com` for clean egress signal
+
+**Impact of route deletion:**
+- Removing IGW default route from public subnet route table affects both directions
+- Existing SSH sessions may drop
+- New SSH attempts will time out until route restored
+- Both inbound (SSH) and outbound (HTTP) broken simultaneously
 
 ---
 
