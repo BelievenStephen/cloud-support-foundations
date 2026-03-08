@@ -2148,3 +2148,203 @@ DHCP pool:
 - Lower administrative overhead
 
 ---
+
+## Mar 8, 2026
+
+## Module 12: Gateways to other networks
+
+### Module objective
+Explain how routers connect networks together.
+
+**Topics covered:**
+- Network Boundaries
+- Network Address Translation
+
+---
+
+### Routers as gateways
+
+**What a router provides:**
+- Gateway for hosts on one network to communicate with hosts on different networks
+- Each interface connected to separate network
+- IPv4 address on interface identifies which local network is directly connected
+
+**Default gateway concept:**
+- Every host must use router as gateway to other networks
+- Each host must know IPv4 address of router interface
+- Address known as **default gateway address**
+
+**Configuration methods:**
+- Statically configured on host, OR
+- Received dynamically via DHCP
+
+---
+
+### Wireless router as DHCP server
+
+**Automatic default gateway distribution:**
+- Wireless router configured as DHCP server
+- Automatically sends correct interface IPv4 address to hosts
+- Address provided as default gateway address
+
+**Benefits:**
+- All hosts can use address to forward messages to ISP
+- Enables access to hosts on internet
+- Wireless routers usually set as DHCP servers by default
+
+**What DHCP provides to clients:**
+- IPv4 address
+- Subnet mask
+- Default gateway (router's internal interface IP)
+
+---
+
+### Routers as boundaries between networks
+
+**Internal (inside) network:**
+- Local hosts attached to wireless router
+- Connected via Ethernet cable or wirelessly
+- DHCP server provides addresses to these hosts
+
+**Default addressing:**
+- Most DHCP servers assign **private addresses** to internal network
+- Not internet-routable public addresses
+- Ensures internal network not directly accessible from internet by default
+
+**Router internal interface:**
+- Usually first host address on network
+- Example: Network `192.168.1.0/24` → Router interface `192.168.1.1`
+
+**Internal host addressing:**
+- Must be assigned addresses within same network as router
+- Either statically configured OR via DHCP
+
+---
+
+### External (outside) network
+
+**ISP side configuration:**
+- Many ISPs use DHCP servers
+- Provide IPv4 addresses to internet side of wireless router
+- Network assigned to internet side = external/outside network
+
+**Wireless router as DHCP client:**
+- When connected to ISP, acts as DHCP client
+- Receives correct external network IPv4 address for internet interface
+- ISPs usually provide internet-routable address
+- Enables hosts connected to router to access internet
+
+**Router dual role:**
+- DHCP server for internal network (private addresses)
+- DHCP client to ISP (receives public address)
+
+---
+
+### Router as network boundary
+
+**Boundary function:**
+- Wireless router serves as boundary between:
+  - Local internal network (private)
+  - External internet (public)
+
+**Address translation requirement:**
+- Internal hosts use private addresses
+- Internet requires public addresses
+- Router performs translation between the two
+
+---
+
+### Network Address Translation (NAT)
+
+**Purpose:**
+- Convert private addresses to internet-routable addresses
+- Allow multiple internal hosts to share single public address
+
+**How NAT works:**
+
+**Outbound traffic:**
+- Private (local) source IPv4 address translated to public (global) address
+- Router replaces private address with its own public address
+
+**Inbound traffic:**
+- Process reversed for incoming packets
+- Public address translated back to appropriate private address
+
+**Key principle:**
+- Only packets destined for other networks need translation
+- Packets must pass through gateway for translation to occur
+
+---
+
+### NAT operation details
+
+**What router receives from ISP:**
+- Public address for internet interface
+- Allows sending and receiving packets on internet
+
+**What router provides to local clients:**
+- Private addresses for internal network
+- Default gateway address (router's internal interface)
+
+**Many-to-one translation:**
+- Wireless router translates many internal IPv4 addresses
+- All share same public address via NAT
+- Enables multiple devices to access internet with single public IP
+
+---
+
+### Private vs public addressing summary
+
+**Internal network (private):**
+- Private IP addresses (RFC 1918)
+  - `10.0.0.0/8`
+  - `172.16.0.0/12`
+  - `192.168.0.0/16`
+- Not routable on internet
+- Multiple organizations can use same private ranges
+- Requires NAT to reach internet
+
+**External network (public):**
+- Public IP address from ISP
+- Routable on internet
+- Globally unique
+- Limited availability (IPv4 exhaustion)
+
+---
+
+### Module 12 summary
+
+**Key concepts covered:**
+
+- **Default gateway:**
+  - Router interface IP address
+  - Known by every host on network
+  - Configured statically or received via DHCP
+  - Used to reach other networks
+
+- **Router as boundary:**
+  - Separates internal (private) network from external (public) internet
+  - Internal hosts use private addresses
+  - External interface uses public address from ISP
+
+- **Router dual role:**
+  - DHCP server for internal network
+  - DHCP client to ISP
+  - Provides default gateway to internal hosts
+  - Receives public address from ISP
+
+- **Network Address Translation (NAT):**
+  - Converts private addresses to public address
+  - Enables multiple internal hosts to share single public IP
+  - Private source address → public address (outbound)
+  - Public destination address → private address (inbound)
+  - Only translates packets destined for other networks
+  - Translation occurs at gateway (router)
+
+- **Address assignment:**
+  - Internal hosts typically receive private addresses
+  - Router receives public address from ISP
+  - DHCP automates distribution of addresses and default gateway
+  - Default gateway usually first address on internal network
+
+---
