@@ -6772,3 +6772,886 @@ scp <localfile> <user@remotesystem>:/home/user/
   - `scp` securely copies files between systems
 
 ---
+
+## Mar 9, 2026
+
+## Chapter 16: The bash shell and basic scripting
+
+### Learning objectives
+
+By the end of this chapter, I should be able to:
+- Explain features and capabilities of bash shell scripting
+- Know basic syntax of scripting statements
+- Be familiar with various methods and constructs used
+- Test for properties and existence of files and other objects
+- Use conditional statements (if-then-else blocks)
+- Perform arithmetic operations using scripting language
+
+---
+
+### Shell scripting overview
+
+**Why use shell scripts:**
+- Automate sets of commands
+- Execute complex sequences efficiently
+- Avoid typing long command sequences repeatedly
+- Reduce errors from manual command entry
+- Easy to create variations and share procedures
+
+**Common tasks requiring scripts:**
+- Look up filename
+- Check if file exists
+- Respond based on file existence
+- Perform operations multiple times
+
+**Development:**
+- Most commonly developed for bash command shell interpreter
+- Can use other interpreters (perl, python, csh, etc.)
+
+---
+
+### Command shell choices
+
+**Command interpreter:**
+- Tasked with executing statements in script
+- Determines scripting language syntax
+
+**Common interpreters:**
+- `/usr/bin/perl`
+- `/bin/bash`
+- `/bin/csh`
+- `/usr/bin/python`
+- `/bin/sh`
+
+**Available shells:**
+- Listed in `/etc/shells`
+- Typical choices:
+  - `/bin/sh`
+  - `/bin/bash`
+  - `/bin/tcsh`
+  - `/bin/csh`
+  - `/bin/ksh`
+  - `/bin/zsh`
+
+**Default:**
+- Most Linux users use bash
+- Users with UNIX backgrounds may override default
+
+---
+
+### What is a shell script
+
+**Definition:**
+- Sequence of statements and commands stored in file
+- Executed by shell
+
+**Shell function:**
+- Command line interpreter
+- Provides user interface for terminal windows
+- Can run scripts in non-interactive sessions (no terminal window)
+
+**Simple example equivalence:**
+
+**Command line:**
+```bash
+find . -name "*.c" -ls
+```
+
+**Script file:**
+```bash
+#!/bin/bash
+find . -name "*.c" -ls
+```
+
+**Shebang (`#!`):**
+- First line of script
+- Contains full path of command interpreter
+- Example: `#!/bin/bash`
+- Two-character sequence `#!` called "shebang"
+- Avoids usual rule that `#` delineates comment
+
+---
+
+### Simple bash script example
+
+**Create script:**
+```bash
+cat > hello.sh
+#!/bin/bash
+echo "Hello Linux Foundation Student"
+```
+- Press ENTER and CTRL-D to save
+
+**Make executable:**
+```bash
+chmod +x hello.sh
+```
+
+**Run script:**
+
+**Method 1:**
+```bash
+./hello.sh
+```
+
+**Method 2:**
+```bash
+bash hello.sh
+```
+- Note: Second method doesn't require execute permission
+
+---
+
+### Interactive script example
+
+**Script with user input:**
+```bash
+#!/bin/bash
+# Interactive reading of a variable
+echo "ENTER YOUR NAME"
+read name
+# Display variable input
+echo The name given was :$name
+```
+
+**Make executable:**
+```bash
+chmod +x getname.sh
+```
+
+**How it works:**
+1. User runs `./getname.sh`
+2. Script prompts with "ENTER YOUR NAME"
+3. User types value and presses Enter
+4. Value printed back to user
+
+**Comments:**
+- `#` starts comments (except shebang `#!`)
+- Can be placed anywhere in line
+- Rest of line considered comment
+
+---
+
+### Return values
+
+**What they are:**
+- All shell scripts generate return value upon finishing
+- Can be explicitly set with `exit` statement
+
+**Purpose:**
+- Permit process to monitor exit state of another process
+- Often used in parent-child relationships
+- Enables taking appropriate steps based on success/failure
+
+**Convention:**
+- Success: 0
+- Failure: non-zero value
+
+**Viewing return value:**
+```bash
+ls /etc/logrotate.conf
+echo $?
+```
+- Return value stored in `$?`
+- `0` indicates success
+- Non-zero indicates failure
+
+**Example with non-existing file:**
+```bash
+ls /etc/nonexistent
+echo $?
+```
+- Returns `2` (file not found)
+
+**Application usage:**
+- Programs translate return values to meaningful messages
+- Specific values and meanings explained in man pages
+
+---
+
+### Basic syntax and special characters
+
+**Common special characters:**
+
+| Character | Description |
+|-----------|-------------|
+| `#` | Add comment (except `\#` or `#!` at start) |
+| `\` | Line continuation or escape next character |
+| `;` | Command separator (execute after current completes) |
+| `$` | Environment variable prefix |
+| `>` | Redirect output |
+| `>>` | Append output |
+| `<` | Redirect input |
+| `\|` | Pipe result to next command |
+
+**Other constructs:**
+- `(..)` - Subshell
+- `{..}` - Command grouping
+- `[..]` - Test condition
+- `&&` - Logical AND
+- `\|\|` - Logical OR
+- `'` - Single quotes
+- `"` - Double quotes
+- `$((...))` - Arithmetic expansion
+
+---
+
+### Splitting long commands
+
+**Why split commands:**
+- Commands too long to type easily on one line
+- Difficult to understand long commands
+- No practical limit to command line length
+
+**Concatenation operator:**
+- Backslash (`\`) at end of line
+- Continues command on next line
+
+**Example:**
+```bash
+sudo apt install autoconf automake bison build-essential \
+    chrpath curl diffstat emacs flex gcc-multilib g++-multilib \
+    libsdl1.2-dev libtool lzop make mc patch \
+    screen socat sudo tar texinfo tofrodos u-boot-tools unzip \
+    vim wget xterm zip
+```
+
+**Effect:**
+- Shell combines multiple lines
+- Executes as single command
+- Improves readability
+
+---
+
+### Putting multiple commands on single line
+
+**Command chaining:**
+- Combine several commands on one line
+- Conditionally execute based on operators
+
+**Semicolon (`;`) - Sequential execution:**
+```bash
+make ; make install ; make clean
+```
+- Each command executes regardless of previous success/failure
+
+**AND operator (`&&`) - Stop on failure:**
+```bash
+make && make install && make clean
+```
+- If first command fails, second never executed
+- Abort subsequent commands on failure
+
+**OR operator (`||`) - Stop on success:**
+```bash
+cat file1 || cat file2 || cat file3
+```
+- Proceed until something succeeds
+- Stop executing after first success
+
+**Chaining vs piping:**
+- Chaining: Each step exits before next starts
+- Piping: Commands operate on data streams simultaneously
+
+---
+
+### Output redirection
+
+**What it is:**
+- Process of diverting output to file
+- Alternative to displaying on terminal
+
+**Basic redirection (`>`):**
+```bash
+free > /tmp/free.out
+```
+- Writes output to file
+- Overwrites existing file
+
+**Append redirection (`>>`):**
+```bash
+echo "new line" >> /tmp/free.out
+```
+- Appends to existing file
+- Creates file if doesn't exist
+
+**View redirected output:**
+```bash
+cat /tmp/free.out
+```
+
+---
+
+### Input redirection
+
+**What it is:**
+- Process of reading input from file
+- Uses `<` character
+
+**Three equivalent commands:**
+```bash
+wc < /etc/passwd
+wc /etc/passwd
+cat /etc/passwd | wc
+```
+
+**All produce:**
+```
+49  105 2678 /etc/passwd
+```
+- Line count, word count, character count
+
+---
+
+### Built-in shell commands
+
+**Types of commands:**
+- Compiled applications (binary executables)
+- Built-in bash commands
+- Shell scripts
+- Scripts from other interpreted languages (perl, Python)
+
+**Compiled applications:**
+- Binary executable files
+- Usually in well-known directories (`/usr/bin`)
+- Examples: rm, ls, df, vi, gzip
+
+**Built-in bash commands:**
+- Only used within terminal shell or script
+- Examples: cd, pwd, echo, read, logout, printf, let, time, ulimit
+
+**Potential conflicts:**
+- Some built-ins have same name as system executables
+- May behave slightly differently
+- Example: `echo` (built-in) vs `/bin/echo` (executable)
+
+**List built-in commands:**
+```bash
+help
+```
+- Shows all bash built-in commands
+- Or see bash man page
+
+---
+
+### Script parameters
+
+**Purpose:**
+- Pass parameter values to script
+- Examples: filename, date, numbers
+- Scripts behave differently based on parameters
+
+**Usage examples:**
+```bash
+./script.sh /tmp
+./script.sh 100 200
+```
+
+**Parameter representation:**
+
+| Parameter | Meaning |
+|-----------|---------|
+| `$0` | Script name |
+| `$1` | First parameter |
+| `$2`, `$3`, etc. | Second, third parameter, etc. |
+| `$*` | All parameters |
+| `$#` | Number of arguments |
+
+---
+
+### Using script parameters example
+
+**Script file (param.sh):**
+```bash
+#!/bin/bash
+echo "Script name: $0"
+echo "First parameter: $1"
+echo "Second parameter: $2"
+echo "Third parameter: $3"
+echo "All parameters: $*"
+echo "All done with $0"
+```
+
+**Execution:**
+```bash
+chmod +x param.sh
+./param.sh one two three four five
+```
+
+**Output:**
+```
+Script name: param.sh
+First parameter: one
+Second parameter: two
+Third parameter: three
+All parameters: one two three four five
+All done with param.sh
+```
+
+---
+
+### Command substitution
+
+**Purpose:**
+- Substitute result of command as portion of another command
+
+**Two methods:**
+
+**Method 1 (preferred):**
+```bash
+$(command)
+```
+
+**Method 2 (deprecated):**
+```
+`command`
+```
+- Uses backticks
+- Should be avoided in new scripts
+
+**How it works:**
+- Command executed in new shell environment
+- Standard output inserted where substitution occurs
+- Any command can be executed this way
+
+**Method 1 advantages:**
+- Allows command nesting
+- Modern method
+- More readable
+
+**Example:**
+```bash
+ls /lib/modules/$(uname -r)/
+```
+- `uname -r` output (e.g., `6.2.4`) inserted into ls argument
+
+---
+
+### Environment variables
+
+**What they are:**
+- Variables containing values
+- Used anywhere in script
+- Can be user-defined or system-defined
+
+**Common system variables:**
+- HOME
+- PATH
+- HOST
+
+**Referencing variables:**
+- Must prefix with `$` when referencing
+- Example: `$HOME`
+
+**View variable value:**
+```bash
+echo $PATH
+```
+
+**Set variable value:**
+```bash
+MYCOLOR=blue
+```
+- No `$` prefix when setting
+
+**List environment variables:**
+```bash
+env
+set
+printenv
+```
+
+---
+
+### Exporting variables
+
+**Default behavior:**
+- Variables created in script only available to that script
+- Child processes (sub-shells) don't have automatic access
+
+**Making variables available to children:**
+- Must promote to environment variables using `export`
+
+**Export methods:**
+
+**Method 1:**
+```bash
+export VAR=value
+```
+
+**Method 2:**
+```bash
+VAR=value
+export VAR
+```
+
+**Important notes:**
+- Child processes can modify exported variable values
+- Parent won't see child's changes
+- Exported variables copied and inherited, not shared
+
+**List exported variables:**
+```bash
+export
+```
+- Shows all currently exported environment variables
+
+---
+
+### Functions
+
+**What they are:**
+- Code block implementing set of operations
+- Execute procedures multiple times
+- Also called subroutines
+
+**Function usage:**
+1. Declare function
+2. Call function
+
+**Function syntax:**
+```bash
+function_name () {
+    command...
+}
+```
+
+**Example declaration:**
+```bash
+display () {
+    echo "This is a sample function"
+}
+```
+
+**Function characteristics:**
+- Can be any length
+- Can have many statements
+- Called as many times as needed after definition
+
+**Passing arguments:**
+```bash
+greet () {
+    echo "Hello $1"
+}
+
+greet "World"
+```
+- First argument: `$1`
+- Second argument: `$2`
+- And so on
+
+---
+
+### The if statement
+
+**Purpose:**
+- Conditional decision making
+- Basic construct in any useful programming language
+
+**What it evaluates:**
+- Numerical or string comparisons
+- Return value of command (0 for success)
+- File existence or permissions
+
+**Compact syntax:**
+```bash
+if TEST-COMMANDS; then CONSEQUENT-COMMANDS; fi
+```
+
+**General syntax:**
+```bash
+if condition
+then
+    statements
+else
+    statements
+fi
+```
+
+---
+
+### Using the if statement
+
+**File existence example:**
+```bash
+if [ -f "$1" ]
+then
+    echo file "$1" exists
+else
+    echo file "$1" does not exist
+fi
+```
+
+**Key elements:**
+- Square brackets `[]` delineate test condition
+- Space required after `[` and before `]`
+- Should check for argument (`$1`) before testing
+
+**Modern syntax:**
+- Doubled brackets `[[ ]]` also valid
+- Never wrong to use doubled brackets
+- Avoids subtle problems with empty variables
+
+---
+
+### The elif statement
+
+**Purpose:**
+- Perform more complicated tests
+- Take actions appropriate to each condition
+
+**Basic syntax:**
+```bash
+if [ sometest ] ; then
+    echo Passed test1
+elif [ someothertest ] ; then
+    echo Passed test2
+fi
+```
+
+**Example with input:**
+```bash
+#!/bin/bash
+echo "Enter a string:"
+read mystring
+
+if [ "$mystring" == "hello" ] ; then
+    echo "You said hello"
+elif [ "$mystring" == "goodbye" ] ; then
+    echo "You said goodbye"
+fi
+```
+
+---
+
+### Testing for files
+
+**Purpose:**
+- Test file attributes with if statement
+
+**Common file tests:**
+
+| Condition | Meaning |
+|-----------|---------|
+| `-e file` | File exists |
+| `-d file` | File is a directory |
+| `-f file` | File is regular file (not symlink, device, directory) |
+| `-s file` | File is non-zero size |
+| `-g file` | File has sgid set |
+| `-u file` | File has suid set |
+| `-r file` | File is readable |
+| `-w file` | File is writable |
+| `-x file` | File is executable |
+
+**Example:**
+```bash
+if [ -x /etc/passwd ] ; then
+    ACTION
+fi
+```
+- Tests if `/etc/passwd` is executable
+
+**Common practice:**
+- Put `; then` on same line as if statement
+
+**Full list:**
+```bash
+man 1 test
+```
+
+---
+
+### Boolean expressions
+
+**What they are:**
+- Evaluate to TRUE or FALSE
+- Use Boolean operators for combinations
+
+**Boolean operators:**
+
+| Operator | Operation | Meaning |
+|----------|-----------|---------|
+| `&&` | AND | Action performed only if both conditions true |
+| `\|\|` | OR | Action performed if any condition true |
+| `!` | NOT | Action performed only if condition false |
+
+**Short-circuit evaluation:**
+
+**AND (`&&`):**
+- Processing stops as soon as condition evaluates to false
+- Example: `A && B && C` - if B false, C never executed
+
+**OR (`||`):**
+- Processing stops as soon as anything is true
+- Example: `A || B || C` - if B true, C never executed
+
+---
+
+### Tests in boolean expressions
+
+**Purpose:**
+- Return TRUE or FALSE
+- Work with strings, numbers, files
+
+**File existence test:**
+```bash
+[ -e <filename> ]
+```
+
+**Numerical comparison test:**
+```bash
+[ $number1 -gt $number2 ]
+```
+- Returns TRUE if number1 greater than number2
+
+---
+
+### String testing
+
+**String comparison operator:**
+- Use `==` (two equal signs)
+- Single `=` also works (some consider deprecated)
+
+**Syntax:**
+```bash
+if [ string1 == string2 ] ; then
+    ACTION
+fi
+```
+
+**Example:**
+```bash
+#!/bin/bash
+echo "Enter your name:"
+read username
+
+if [ "$username" == "admin" ] ; then
+    echo "Welcome, administrator"
+else
+    echo "Welcome, $username"
+fi
+```
+
+---
+
+### Numerical tests
+
+**Numerical comparison operators:**
+
+| Operator | Meaning |
+|----------|---------|
+| `-eq` | Equal to |
+| `-ne` | Not equal to |
+| `-gt` | Greater than |
+| `-lt` | Less than |
+| `-ge` | Greater than or equal to |
+| `-le` | Less than or equal to |
+
+**Syntax:**
+```bash
+exp1 -op exp2
+```
+
+**Example:**
+```bash
+if [ $count -gt 10 ] ; then
+    echo "Count exceeds 10"
+fi
+```
+
+---
+
+### Arithmetic expressions
+
+**Three evaluation methods:**
+
+**Method 1: expr utility (deprecated):**
+```bash
+expr 8 + 8
+echo $(expr 8 + 8)
+```
+
+**Method 2: $((...)) syntax (built-in, preferred):**
+```bash
+echo $((x+1))
+```
+
+**Method 3: let command (built-in):**
+```bash
+let x=(1 + 2)
+echo $x
+```
+
+**Important:**
+- Spaces matter in syntax
+- Modern scripts should use `$((...))` instead of `expr`
+
+**Example calculations:**
+```bash
+result=$((5 + 3))
+echo $result        # Outputs: 8
+
+counter=$((counter + 1))
+total=$((10 * 5))
+```
+
+---
+
+### Chapter 16 summary
+
+**Key concepts covered:**
+
+- **Shell scripts:**
+  - Sequence of statements and commands in file
+  - Executed by shell (commonly bash)
+  - Most commonly used shell in Linux is bash
+
+- **Command substitution:**
+  - Substitute result of command as portion of another command
+  - Use `$(command)` syntax (preferred)
+  - Backticks deprecated
+
+- **Functions:**
+  - Group of commands for execution
+  - Also called routines or subroutines
+  - Can accept arguments (`$1`, `$2`, etc.)
+
+- **Environment variables:**
+  - Quantities preassigned by shell or defined by user
+  - Reference with `$` prefix
+  - Set without `$` prefix
+
+- **Exporting variables:**
+  - Make visible to child processes
+  - Use `export` command
+  - Changes in children don't affect parent
+
+- **Script parameters:**
+  - Scripts behave differently based on passed values
+  - Access via `$0` (script name), `$1`, `$2`, etc.
+  - `$*` for all parameters, `$#` for count
+
+- **Redirection:**
+  - Output redirection: Write output to file (`>`, `>>`)
+  - Input redirection: Read input from file (`<`)
+
+- **Conditional statements:**
+  - `if` statement for conditional execution
+  - Test conditions with `[ ]` or `[[ ]]`
+  - `elif` for multiple conditions
+  - File tests: `-e`, `-f`, `-d`, `-r`, `-w`, `-x`, etc.
+
+- **Boolean operators:**
+  - `&&` (AND): Continue only if previous succeeds
+  - `||` (OR): Continue until something succeeds
+  - `!` (NOT): Invert condition
+
+- **Comparisons:**
+  - String: `==` operator
+  - Numerical: `-eq`, `-ne`, `-gt`, `-lt`, `-ge`, `-le`
+
+- **Arithmetic:**
+  - Use `$((...))` for arithmetic expressions
+  - Common operators: `+`, `-`, `*`, `/`, `%`
+
+---
