@@ -2348,3 +2348,300 @@ Explain how routers connect networks together.
   - Default gateway usually first address on internal network
 
 ---
+
+## Mar 11, 2026
+
+## Module 13: The ARP process
+
+### Module objective
+Explain how ARP enables communication on a network.
+
+**Topics covered:**
+- MAC & IP Address Roles
+- Broadcast Containment
+
+---
+
+### Two primary addresses on Ethernet LAN
+
+**Physical address (MAC address):**
+- Used for NIC-to-NIC communications
+- On same Ethernet network
+- Never changes (burned into hardware)
+
+**Logical address (IP address):**
+- Used to send packet from source to destination
+- Destination may be on same network or remote network
+- Can change based on network location (DHCP)
+
+---
+
+### Destination on same network
+
+**Scenario:** Host must send message but only knows destination IP address
+
+**Problem:** Host needs MAC address of destination device
+
+**Solution:** Address resolution
+
+---
+
+**Layer 2 (Ethernet frame) addressing:**
+- Physical addresses deliver frame from one NIC to another
+- On same network
+
+**If destination IP on same network:**
+- Destination MAC address = destination device's MAC
+
+---
+
+**Example: PC1 to PC2 (same network)**
+
+**Network:** `192.168.10.0/24`
+
+**Layer 2 Ethernet frame contains:**
+- Destination MAC: `55-55-55` (PC2's MAC)
+- Source MAC: `aa-aa-aa` (PC1's MAC)
+
+**Layer 3 IP packet contains:**
+- Source IPv4: `192.168.10.10` (PC1)
+- Destination IPv4: `192.168.10.11` (PC2)
+
+---
+
+### Destination on remote network
+
+**When destination IP on remote network:**
+- Destination MAC = default gateway (router interface)
+
+**Why:**
+- Host cannot directly reach remote network
+- Must send to router first
+- Router forwards to destination
+
+---
+
+**Example: PC1 to PC2 (remote network)**
+
+**PC1 network:** `192.168.10.0/24`
+**PC2 network:** Different network (remote)
+
+**Layer 2 frame (PC1 to Router):**
+- Destination MAC: Router's interface MAC (default gateway)
+- Source MAC: PC1's MAC
+
+**Layer 3 packet (unchanged):**
+- Source IPv4: PC1's IP
+- Destination IPv4: PC2's IP (on remote network)
+
+---
+
+### Router frame processing
+
+**Router receives frame:**
+1. De-encapsulates Layer 2 information
+2. Examines destination IPv4 address
+3. Determines next-hop device
+4. Encapsulates IPv4 packet in new frame for outgoing interface
+
+**New frame characteristics:**
+- New source MAC: Outgoing router interface MAC
+- New destination MAC: Next-hop device MAC (or final destination if last hop)
+
+---
+
+**Example: R1 forwarding to R2**
+
+**New Layer 2 frame:**
+- Destination MAC: R2 G0/0/1 interface MAC
+- Source MAC: R1 G0/0/1 interface MAC
+
+**Layer 3 packet:** Unchanged (still PC1 to PC2)
+
+---
+
+### Frame encapsulation along path
+
+**Key principle:**
+- Along each link, IP packet encapsulated in frame
+- Frame specific to data link technology (e.g., Ethernet)
+
+**If next-hop is final destination:**
+- Destination MAC = destination device's NIC MAC
+
+---
+
+### Address resolution protocols
+
+**For IPv4 packets:**
+- Address Resolution Protocol (ARP)
+- Associates IP addresses with MAC addresses
+
+**For IPv6 packets:**
+- ICMPv6 Neighbor Discovery (ND)
+- Similar function to ARP
+
+---
+
+### Broadcast domains
+
+**What is a broadcast domain:**
+- Local area network with one or more Ethernet switches
+- All hosts within domain receive broadcast messages
+
+**Broadcast behavior:**
+- Host sends broadcast message
+- Switches forward to every connected host on same local network
+- Broadcast MAC address: `FF:FF:FF:FF:FF:FF` (all ones)
+
+---
+
+### Broadcast MAC address
+
+**Structure:**
+- 48-bit address
+- All bits set to 1
+- Hexadecimal representation: `FF:FF:FF:FF:FF:FF`
+- Each F represents four 1s in binary
+
+**Recognition:**
+- All hosts recognize and accept broadcast MAC address
+- Every host processes broadcast as if addressed directly to it
+
+---
+
+### Broadcast domain limitations
+
+**Problem with too many hosts:**
+- Broadcast traffic becomes excessive
+- Network traffic increases as hosts added
+- Limited by switch capabilities
+
+**Performance improvement solution:**
+- Divide network into multiple broadcast domains
+- Use routers to separate broadcast domains
+- Each broadcast domain = separate network segment
+
+**Key principle:**
+- Routers do NOT forward broadcasts
+- Broadcasts contained within local network
+
+---
+
+### Access layer communication problem
+
+**NIC acceptance criteria:**
+- Only accepts frame if destination is:
+  - Broadcast MAC address, OR
+  - NIC's own MAC address
+
+**Application behavior:**
+- Most network applications use logical IP address
+- To identify servers and clients
+
+**The problem:**
+- Sending host only has destination IP address
+- Needs destination MAC address for frame
+- How to determine correct MAC address?
+
+---
+
+### Address Resolution Protocol (ARP)
+
+**Purpose:**
+- Discover MAC address of host on same local network
+- When only IPv4 address known
+
+**ARP three-step process:**
+
+**Step 1: ARP request (broadcast)**
+- Sending host creates frame addressed to broadcast MAC
+- Frame contains message with destination's IPv4 address
+- Sent to all hosts on network
+
+**Step 2: ARP reply (unicast)**
+- Each host receives broadcast frame
+- Compares IPv4 address in message with its own
+- Host with matching IPv4 sends MAC address back to sender
+
+**Step 3: ARP table storage**
+- Sending host receives reply
+- Stores MAC address and IPv4 address in ARP table
+- Future frames sent directly without new ARP request
+
+---
+
+### ARP table benefits
+
+**Efficiency:**
+- Once MAC address in ARP table, no new ARP request needed
+- Can send frames directly to destination
+
+**Requirements:**
+- ARP messages rely on broadcast frames
+- All hosts in local IPv4 network must be in same broadcast domain
+
+---
+
+### IPv6 neighbor discovery
+
+**IPv6 equivalent to ARP:**
+- Neighbor Discovery (ND) protocol
+- Uses ICMPv6
+- Similar function to ARP for IPv4
+
+---
+
+### Module 13 summary
+
+**Key concepts covered:**
+
+- **Two address types:**
+  - MAC address (physical, Layer 2) - NIC-to-NIC on same network
+  - IP address (logical, Layer 3) - Source to destination (local or remote)
+
+- **Same network communication:**
+  - Destination MAC = destination device's MAC
+  - Both Layer 2 and Layer 3 addresses point to same device
+
+- **Remote network communication:**
+  - Destination MAC = default gateway (router interface)
+  - Layer 3 destination IP = final destination
+  - Router de-encapsulates, examines IP, re-encapsulates with new MAC addresses
+
+- **Frame encapsulation:**
+  - Each link has own Layer 2 frame
+  - IP packet remains same throughout path
+  - MAC addresses change at each hop
+
+- **Broadcast domain:**
+  - Local network where broadcasts reach all hosts
+  - Switches forward broadcasts to all connected hosts
+  - Routers divide networks into multiple broadcast domains
+
+- **Broadcast MAC address:**
+  - `FF:FF:FF:FF:FF:FF` (all ones)
+  - Recognized and accepted by all hosts
+  - Used for ARP requests
+
+- **ARP process:**
+  1. Broadcast ARP request with target IP
+  2. Target host replies with its MAC address
+  3. Requesting host stores mapping in ARP table
+
+- **Address resolution protocols:**
+  - IPv4: Address Resolution Protocol (ARP)
+  - IPv6: Neighbor Discovery (ND)
+
+- **Broadcast limitations:**
+  - Too many hosts = excessive broadcast traffic
+  - Performance degradation
+  - Solution: Divide into multiple broadcast domains with routers
+
+- **Why MAC and IP both needed:**
+  - IP address: Identifies where device is (network location)
+  - MAC address: Identifies specific device on local network
+  - IP gets data to correct network
+  - MAC delivers to specific device on that network
+
+---
