@@ -370,3 +370,248 @@ ssh -i key.pem ec2-user@<public-ip>
 - All subnets broken: Check route table or SG first
 
 ---
+
+## Mar 12, 2026
+
+### Lab Exercise: NACL Break-Fix with Deny-All Association
+
+**Objective:** Demonstrate impact of deny-all NACL on existing and new connections
+
+---
+
+### Baseline Verification
+
+**SSH connectivity test:**
+```bash
+ssh -i lab-unreachable-key-pair.pem ec2-user@<REDACTED>
+```
+**Result:** Successfully connected
+
+**HTTP egress test:**
+```bash
+curl -I http://example.com
+```
+**Result:** `HTTP/1.1 200 OK`
+
+**Original NACL configuration:**
+- Subnet: `subnet-0ed1fa4a40bc62a26`
+- Associated NACL: `acl-0c140946f97db02aa` (default)
+- VPC: `vpc-0622cb5ac599f4c36`
+
+---
+
+### Breaking Change: Create and Apply Deny-All NACL
+
+**Custom NACL created:**
+- Name: `lab-deny-all-nacl-0312`
+- VPC: `vpc-0622cb5ac599f4c36`
+
+**NACL rules configured:**
+
+**Inbound rules:**
+- Rule `*`: DENY all traffic
+- No allow rules
+
+**Outbound rules:**
+- Rule `*`: DENY all traffic
+- No allow rules
+
+**Action taken:**
+- Associated `subnet-0ed1fa4a40bc62a26` to `lab-deny-all-nacl-0312`
+- Replaced default NACL association
+
+---
+
+### Impact After NACL Change
+
+**Existing SSH session:**
+- Session froze
+- Dropped with error: `Read from remote host ... Operation timed out`
+- Additional error: `Broken pipe`
+
+**New SSH attempts:**
+```bash
+ssh -i lab-unreachable-key-pair.pem ec2-user@<REDACTED>
+```
+**Result:** Connection timeout
+
+**Key observation:**
+- Deny-all NACL immediately breaks even established connections
+- Unlike Security Group changes, NACL affects existing sessions
+- Stateless nature means return traffic blocked
+
+---
+
+### Resolution Applied
+
+**Re-association to default NACL:**
+- Associated `subnet-0ed1fa4a40bc62a26` back to default NACL `acl-0c140946f97db02aa`
+- Waited briefly for change to propagate
+
+---
+
+### Verification After Fix
+
+**SSH connectivity:**
+```bash
+ssh -i lab-unreachable-key-pair.pem ec2-user@<REDACTED>
+```
+**Result:** Successfully connected
+
+**HTTP egress test:**
+```bash
+curl -I http://example.com
+```
+**Result:** `HTTP/1.1 200 OK`
+
+**Connectivity restored immediately after NACL re-association**
+
+---
+
+### Cleanup
+
+**NACL cleanup verification:**
+1. Confirmed `lab-deny-all-nacl-0312` has no subnet associations
+2. Deleted custom NACL `lab-deny-all-nacl-0312`
+
+**Final state:**
+- Subnet `subnet-0ed1fa4a40bc62a26` associated with default NACL
+- No orphaned custom NACLs
+
+---
+
+### Key Observations
+
+**NACL vs Security Group behavior:**
+
+| Aspect | Security Group | Network ACL |
+|--------|----------------|-------------|
+| **Affects existing connections** | No (stateful) | Yes (stateless) |
+| **Connection drop behavior** | Existing connections continue | Existing connections drop |
+| **Change impact timing** | Immediate but only new connections | Immediate including active sessions |
+
+**Deny-all NACL impact:**
+- Blocks all inbound traffic (including SSH handshakes)
+- Blocks all outbound traffic (including SSH return packets)
+- Existing sessions cannot send/receive packets
+- Results in frozen connection then timeout/broken pipe
+
+**Stateless vs stateful firewall:**
+- Security Group (stateful): Tracks connections, allows return traffic
+- NACL (stateless): Evaluates every packet independently
+- NACL deny blocks both directions, no connection state awareness
+
+---
+
+### Troubleshooting Lesson
+
+**"SSH was working, now frozen and dropped":**
+- Sudden connection freeze → Check for NACL changes
+- Broken pipe error → Likely NACL blocking return traffic
+- Different from timeout pattern (which suggests connection never established)
+
+**Diagnostic pattern:**
+
+| Symptom | Likely Cause |
+|---------|--------------|
+| **Connection freezes then drops with "Broken pipe"** | NACL change blocked active session |
+| **New connections timeout immediately** | NACL or SG blocking initial handshake |
+| **Existing connections continue, new fail** | Security Group change (stateful) |
+
+---
+
+### Lab Workflow Summary
+
+| Step | Action | SSH Status | HTTP Status |
+|------|--------|------------|-------------|
+| 1. Baseline | Default NACL associated | ✅ Connected | ✅ 200 OK |
+| 2. Break | Associate deny-all NACL | ❌ Frozen → Broken pipe | ❌ No connectivity |
+| 3. Fix | Re-associate default NACL | ✅ Connected | ✅ 200 OK |
+| 4. Cleanup | Delete deny-all NACL | ✅ Complete | ✅ Complete |
+
+**Principle reinforced:** NACL changes affect active connections immediately due to stateless packet evaluation
+
+---
+
+### Real-World Scenario
+
+**Support ticket pattern: "All SSH sessions suddenly dropped"**
+
+**Investigation order:**
+1. Check recent NACL association changes
+2. Verify current NACL rules (inbound + outbound)
+3. Compare with previous working configuration
+4. Check for deny-all or missing allow rules
+
+**Common root causes:**
+- Accidental association to restrictive NACL
+- NACL rule modification removing required allows
+- Automation/IaC applying wrong NACL configuration
+- Subnet moved to different NACL during network restructure
+
+**Resolution:**
+- Re-associate subnet to correct NACL
+- Or fix rules in current NACL
+- Verify both inbound and outbound rules (stateless requirement)
+
+---
+
+### NACL Best Practices
+
+**Production environment:**
+- Document which NACLs associated with which subnets
+- Use descriptive NACL names indicating purpose
+- Test NACL changes in non-production first
+- Implement change control for NACL associations
+
+**Lab/testing:**
+- Create custom NACLs with clear temporary naming
+- Always verify no subnet associations before deleting
+- Keep default NACL as fallback (allow-all)
+- Document original NACL associations before changes
+
+**Troubleshooting:**
+- Check NACL first if sudden connection drops
+- Remember stateless nature (both directions required)
+- Compare current vs previous NACL associations
+- Test with temporary allow-all to isolate issue
+
+---
+
+### Connection Drop Signature
+
+**Deny-all NACL connection drop characteristics:**
+- Connection freezes mid-operation
+- Eventually times out
+- Error: `Read from remote host ... Operation timed out`
+- Error: `Broken pipe`
+- No graceful TCP termination
+
+**Why this happens:**
+- SSH keepalive packets blocked by NACL
+- TCP acknowledgments cannot return
+- Session cannot maintain state
+- Client detects unresponsive connection
+- Timeout triggers connection termination
+
+---
+
+### Quick Reference: NACL Troubleshooting
+
+**Symptoms suggesting NACL issue:**
+- ✅ Route table correct (IGW route exists)
+- ✅ Security Group allows required ports
+- ✅ Instance has public IP
+- ✅ Instance status checks passing
+- ❌ All connections still timing out or dropping
+
+**Next step:** Check NACL
+
+**What to verify:**
+1. Which NACL associated with subnet
+2. NACL inbound rules (must allow required traffic)
+3. NACL outbound rules (must allow return traffic)
+4. Rule evaluation order (lowest number wins)
+5. Recent NACL association changes
+
+---
