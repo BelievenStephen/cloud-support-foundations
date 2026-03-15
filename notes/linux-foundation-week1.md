@@ -7655,3 +7655,343 @@ total=$((10 * 5))
   - Common operators: `+`, `-`, `*`, `/`, `%`
 
 ---
+
+## Mar 15, 2026
+
+## Chapter 17: More on Bash Shell Scripting
+
+### Learning objectives
+
+By the end of this chapter, I should be able to:
+- Manipulate strings to perform actions such as comparison and sorting
+- Use Boolean expressions when working with multiple data types, including strings, numbers, and files
+- Use case statements to handle command line options
+- Use looping constructs to execute one or more lines of code repetitively
+- Debug scripts using `set -x` and `set +x`
+- Create temporary files and directories
+- Create and use random numbers
+
+---
+
+### String manipulation
+
+**What strings are:**
+- A string variable contains a sequence of text characters
+- Can include letters, numbers, symbols, and punctuation
+- Examples: `abcde`, `123`, `abcde 123`, `abcde-123`, `&abcde=%123`
+
+**Common string operators:**
+
+| Operator | Meaning |
+|----------|---------|
+| `[[ string1 > string2 ]]` | Compares sorting order of string1 and string2 |
+| `[[ string1 == string2 ]]` | Compares characters in string1 with string2 |
+| `myLen1=${#string1}` | Saves the length of string1 in variable myLen1 |
+
+**Note on brackets:**
+- Single brackets `[ ]` can often be used in place of double brackets `[[ ]]`
+- Double brackets are preferred — they avoid errors with empty strings and environment variables
+
+**Extracting parts of a string:**
+- First n characters: `${string:0:n}` — offset 0, extract n characters
+- All characters after a dot: `${string#*.}`
+
+---
+
+### The case statement
+
+**What it is:**
+- Used when the value of a variable can lead to different execution paths
+- Often used to handle command-line options
+
+**Advantages over if-then-else:**
+- Easier to read and write
+- Compares a variable against several values at once
+- Reduces overall program complexity
+
+**Structure:**
+```bash
+case expression in
+    pattern1) execute commands;;
+    pattern2) execute commands;;
+    pattern3) execute commands;;
+    *) execute default commands;;
+esac
+```
+
+**Key behavior:**
+- As soon as a pattern matches, execution exits the case block
+- Further patterns are not evaluated
+- The `*)` catch-all runs if no other pattern matches (can also do nothing)
+
+---
+
+### Looping constructs
+
+**Overview:**
+- Execute one or more lines of code repetitively
+- Loop until a conditional test returns true or false
+- Three main types: `for`, `while`, `until`
+
+---
+
+#### The for loop
+
+**What it does:**
+- Operates on each element of a list of items
+
+**Syntax:**
+```bash
+for variable-name in list
+do
+    execute one iteration for each item in the list until the list is finished
+done
+```
+
+**Example — sum numbers 1 to 10:**
+```bash
+#!/bin/bash
+sum=0
+for i in 1 2 3 4 5 6 7 8 9 10
+do
+    sum=$((sum + i))
+done
+echo "Sum = $sum"
+```
+
+---
+
+#### The while loop
+
+**What it does:**
+- Repeats a set of statements as long as the control command returns true
+
+**Syntax:**
+```bash
+while condition is true
+do
+    Commands for execution
+done
+```
+
+**Example — factorial:**
+```bash
+#!/bin/bash
+factorial=1
+i=1
+while [ $i -le 5 ]
+do
+    factorial=$((factorial * i))
+    i=$((i + 1))
+done
+echo "Factorial = $factorial"
+```
+
+**Note:** Computing `21!` overflows because bash integers are 64-bit signed and the result exceeds the maximum value
+
+---
+
+#### The until loop
+
+**What it does:**
+- Repeats a set of statements as long as the control command is **false**
+- Essentially the opposite of the while loop
+
+**Syntax:**
+```bash
+until condition is false
+do
+    Commands for execution
+done
+```
+
+**Example — factorial:**
+```bash
+#!/bin/bash
+factorial=1
+i=1
+until [ $i -gt 5 ]
+do
+    factorial=$((factorial * i))
+    i=$((i + 1))
+done
+echo "Factorial = $factorial"
+```
+
+---
+
+### Script debugging
+
+**Why it matters:**
+- Scripts may fail due to incorrect syntax, missing files, or insufficient permissions
+- Debugging helps locate the source of errors before fixing them
+
+**Debug mode options:**
+
+**Run entire script in debug mode:**
+```bash
+bash -x ./script_file
+```
+
+**Bracket specific sections:**
+```bash
+set -x    # turns on debugging
+...
+set +x    # turns off debugging
+```
+
+**What debug mode does:**
+- Traces and prefixes each command with `+`
+- Displays each command before executing it
+- Can be applied to the entire script or selected sections only
+
+---
+
+### Redirecting errors to file and screen
+
+**Standard file streams:**
+
+| File Stream | Description | File Descriptor |
+|-------------|-------------|-----------------|
+| `stdin` | Standard input (keyboard/terminal by default) | 0 |
+| `stdout` | Standard output (screen by default) | 1 |
+| `stderr` | Standard error output (screen by default) | 2 |
+
+**Redirection examples:**
+
+```bash
+# Redirect stderr to a file
+./script.sh 2> error.log
+
+# Redirect both stdout and stderr to the same file
+./script.sh >& output.log
+
+# Redirect stdout and stderr to separate files
+./script.sh > output.log 2> error.log
+```
+
+---
+
+### Creating temporary files and directories
+
+**Purpose:**
+- Store data for a short time during script execution
+- Automatically disappear when the program terminates
+
+**Why not use `touch`:**
+- Predictable filenames can be exploited by attackers
+- A malicious actor could create a symlink from a known temp file to a sensitive file like `/etc/passwd`
+
+**Best practice — use `mktemp`:**
+
+| Command | Usage |
+|---------|-------|
+| `TEMP=$(mktemp /tmp/tempfile.XXXXXXXX)` | Create a temporary file |
+| `TEMPDIR=$(mktemp -d /tmp/tempdir.XXXXXXXX)` | Create a temporary directory |
+
+**Notes on `mktemp`:**
+- `XXXXXXXX` is replaced with random characters at runtime
+- Must have at least 3 X's in the template
+- Number of random characters equals the number of X's provided
+
+**Secure usage example:**
+```bash
+# Insecure — predictable filename
+echo $VAR > /tmp/tempfile
+
+# Secure — randomized filename
+TEMP=$(mktemp /tmp/tempfile.XXXXXXXX)
+echo $VAR > $TEMP
+```
+
+---
+
+### Discarding output with /dev/null
+
+**What it is:**
+- A special pseudofile also called the "bit bucket" or "black hole"
+- All data written to it is discarded
+- Write operations never return failure conditions
+
+**Usage examples:**
+```bash
+# Discard stdout only (errors still appear)
+ls -lR /tmp > /dev/null
+
+# Discard both stdout and stderr
+ls -lR /tmp >& /dev/null
+```
+
+---
+
+### Random numbers and data
+
+**Common use cases:**
+- Security-related tasks
+- Reinitializing or erasing storage devices
+- Generating test data
+
+**Method 1 — `$RANDOM` environment variable:**
+```bash
+echo $RANDOM           # prints a random integer
+echo $((RANDOM % 100)) # random number between 0 and 99
+```
+- Derived from the Linux kernel's built-in random number generator
+
+**Method 2 — OpenSSL:**
+- Uses the FIPS 140 algorithm
+- Suitable for cryptographic purposes
+
+**How the kernel generates randomness:**
+- Specialized servers use hardware noise signals (thermal noise, photoelectric effect)
+- Most computers rely on boot-time and runtime events to seed the entropy pool
+- The entropy pool feeds two device nodes:
+
+| Device | Use |
+|--------|-----|
+| `/dev/random` | High-quality randomness (e.g., key generation); can block when entropy pool is empty |
+| `/dev/urandom` | Faster; reuses internal pool; suitable for most cryptographic purposes |
+
+---
+
+### Chapter 17 summary
+
+**Key concepts covered:**
+
+- **String manipulation:**
+  - Compare, sort, and find the length of strings
+  - Extract substrings using `${string:0:n}` and `${string#*.}`
+  - Prefer `[[ ]]` over `[ ]` to avoid subtle errors
+
+- **case statement:**
+  - Cleaner alternative to nested if-then-else blocks
+  - Matches expression against patterns and exits on first match
+  - Use `*)` as a catch-all default
+
+- **Looping constructs:**
+  - `for` — iterate over a list of items
+  - `while` — repeat while condition is true
+  - `until` — repeat while condition is false (opposite of while)
+
+- **Script debugging:**
+  - `bash -x` or `set -x` / `set +x` to enable debug mode
+  - Debug mode prefixes each executed command with `+`
+
+- **Redirecting output:**
+  - `stdin` (0), `stdout` (1), `stderr` (2)
+  - Redirect streams independently or together for logging and debugging
+
+- **Temporary files:**
+  - Use `mktemp` to generate unpredictable filenames
+  - Predictable temp file names are a security vulnerability
+
+- **`/dev/null`:**
+  - Discards all data written to it
+  - Use `>& /dev/null` to suppress both stdout and stderr
+
+- **Random numbers:**
+  - `$RANDOM` for simple use cases
+  - `/dev/random` for high-quality randomness; `/dev/urandom` for speed
+  - Entropy pool sourced from hardware noise or system events
+
+---
