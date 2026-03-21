@@ -66,3 +66,48 @@
 - **502** → bad ALB-to-target connection or bad target response
 
 ---
+
+## Mar 21, 2026
+
+## Project 1 — ECR Repository Setup and Image Push
+
+### Summary
+
+Created an ECR repository and pushed the local application image to AWS. The image is now stored in ECR and ready for use in the ECS task definition.
+
+---
+
+### ECR Repository
+
+| Detail | Value |
+|--------|-------|
+| Repository name | `aws-hosted-app` |
+| Region | `us-west-1` |
+| AWS account ID | `886219357247` |
+| Full repository URI | `886219357247.dkr.ecr.us-west-1.amazonaws.com/aws-hosted-app` |
+
+---
+
+### Steps Completed
+
+1. Created the `aws-hosted-app` ECR repository in `us-west-1`
+2. Tagged the local image for ECR:
+```bash
+   docker tag aws-hosted-app-local:latest 886219357247.dkr.ecr.us-west-1.amazonaws.com/aws-hosted-app:latest
+```
+3. Authenticated Docker to ECR:
+```bash
+   aws ecr get-login-password --region us-west-1 | docker login --username AWS --password-stdin 886219357247.dkr.ecr.us-west-1.amazonaws.com
+```
+4. Pushed the image to ECR:
+```bash
+   docker push 886219357247.dkr.ecr.us-west-1.amazonaws.com/aws-hosted-app:latest
+```
+5. Verified the push completed — `latest` tag and digest confirmed in terminal output
+
+---
+
+### What This Proves
+
+- The application image is now stored in AWS and available for ECS task definition and service configuration.
+- ECR push issues and app build issues are now ruled out as future failure points, keeping the next phase focused on ECS, ALB, target group, and networking setup.
