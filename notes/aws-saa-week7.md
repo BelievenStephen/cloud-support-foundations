@@ -111,3 +111,79 @@ Created an ECR repository and pushed the local application image to AWS. The ima
 
 - The application image is now stored in AWS and available for ECS task definition and service configuration.
 - ECR push issues and app build issues are now ruled out as future failure points, keeping the next phase focused on ECS, ALB, target group, and networking setup.
+
+---
+
+## Mar 22, 2026
+
+## ECS Concepts — Task Definition, Cluster, and Service
+
+### Core Components
+
+| Component | What it is |
+|-----------|------------|
+| **Task definition** | Blueprint for how a task runs — defines container image, CPU/memory, ports, logging, IAM roles, and launch type compatibility |
+| **Cluster** | Logical grouping where ECS runs tasks and services — for Project 1, this will hold the Fargate service |
+| **Service** | Runs and maintains the desired number of task copies — replaces failed or stopped tasks automatically to hold the desired count |
+| **Desired count** | How many task instances the service keeps running — Project 1 will use `1` to keep cost low while proving the deploy path |
+
+---
+
+### Networking
+
+**Fargate requires `awsvpc` network mode.**
+
+Each task gets its own elastic network interface (ENI). Subnet placement and security group settings apply at the task level, not the service level, which means those settings must be correct for traffic to reach the task.
+
+---
+
+### Ports
+
+- The **container definition** exposes the app port — `8080` for Project 1
+- The **ALB listener** receives traffic on its listener port — likely `80`
+- The **target group** forwards traffic from the ALB to the container on port `8080`
+
+---
+
+### IAM Roles
+
+| Role | Used by | Purpose |
+|------|---------|---------|
+| **Task execution role** | ECS / Fargate | Pulls the container image from ECR and sends logs to CloudWatch on your behalf |
+| **Task role** | Application code inside the container | Used if the app itself needs to call AWS APIs |
+
+---
+
+### Logging
+
+ECS sends container logs to CloudWatch Logs using the `awslogs` log driver configured in the task definition. This is the logging path planned for Project 1 troubleshooting and validation.
+
+---
+
+### What Each Layer Controls
+
+**Task definition controls:**
+- Which ECR image to run
+- Fargate compatibility
+- CPU and memory allocation
+- Container port (`8080`)
+- `awslogs` log configuration
+- Task execution role and task role
+
+**ECS service controls:**
+- How many task copies stay running (desired count)
+- Automatic task replacement on failure
+- Subnet and security group assignment
+- ALB and target group attachment
+
+---
+
+### Project 1 Plan
+
+- Image source: `aws-hosted-app` ECR repository
+- Container port: `8080`
+- Launch type: Fargate
+- Network mode: `awsvpc`
+- Desired count: `1`
+- Logging: CloudWatch Logs via `awslogs`
+- ALB health check path: `/health`
