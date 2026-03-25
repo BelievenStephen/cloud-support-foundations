@@ -40,3 +40,53 @@ The standard execution role (`ecsTaskExecutionRole`) was not found. It must be c
 ### Next Step
 
 Create `ecsTaskExecutionRole` and attach `AmazonECSTaskExecutionRolePolicy`.
+
+---
+
+## Mar 25, 2026
+
+## Project 1 — Execution Role and Task Definition
+
+### Summary
+
+Created the missing task execution role and registered the first revision of the ECS task definition. The application image, IAM role, networking mode, and logging are now fully wired together.
+
+---
+
+### Task Execution Role
+
+| Detail | Value |
+|--------|-------|
+| Role name | `ecsTaskExecutionRole` |
+| Policy attached | `AmazonECSTaskExecutionRolePolicy` |
+| Status | Created and confirmed ✅ |
+
+---
+
+### Task Definition
+
+| Detail | Value |
+|--------|-------|
+| Family | `aws-hosted-app` |
+| Revision | `1` |
+| Container image | `886219357247.dkr.ecr.us-west-1.amazonaws.com/aws-hosted-app:latest` |
+| Container port | `8080` |
+| Network mode | `awsvpc` |
+| Launch type compatibility | Fargate |
+| CPU | `256` |
+| Memory | `512` MiB |
+| Log group | `/ecs/aws-hosted-app` |
+| Status | Registered ✅ |
+
+---
+
+### What This Unblocks
+
+- The application image, execution role, and CloudWatch Logs configuration are now wired into a valid task definition.
+- The next phase can proceed: creating the target group, ECS cluster, and ECS service.
+
+### Next Step
+
+Create the target group, ECS cluster, and ECS service.
+
+---
