@@ -90,3 +90,44 @@ Created the missing task execution role and registered the first revision of the
 Create the target group, ECS cluster, and ECS service.
 
 ---
+
+## Mar 26, 2026
+
+## ECS Service Deployment — Signals and Triage
+
+### Key Concepts
+
+| Concept | What it means |
+|---------|---------------|
+| **Service events** | First place to check when a deployment fails or tasks do not stay healthy — surface task launch failures, target registration problems, and replacement activity |
+| **Stopped task reasons** | Separates a launch problem from an app problem — shows whether the failure was image pull, startup, health check, or another runtime issue |
+| **Health check grace period** | Time ECS ignores unhealthy ELB and container health checks after a task starts — default is `0`, so ECS reacts to unhealthy checks immediately if not set |
+| **CloudWatch Logs** | First place to check if the task starts but the app does not behave correctly — confirms whether the container launched and what it printed before failing |
+| **Target group health** | Matters once the service is tied to a load balancer — if the task is running but the target is unhealthy, check the health check path, port, and app response before investigating the ALB |
+
+---
+
+### Triage: Launch Failure vs App Failure
+
+**Task never reaches a stable running state → think launch issue first**
+- Check service events
+- Check stopped task reasons
+- Check IAM permissions, image access, and networking
+
+**Task runs but service still fails → think app issue first**
+- Check CloudWatch Logs
+- Check health check behavior
+- Check target group health
+
+---
+
+### Project 1 Notes
+
+- If the task starts but `/health` fails, check CloudWatch Logs first.
+- Once the ECS service is attached to the target group, target group health becomes one of the first checks if tasks run but traffic still fails.
+
+### Next Step
+
+Create the target group, ECS cluster, and ECS service.
+
+---
