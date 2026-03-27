@@ -131,3 +131,40 @@ Create the target group, ECS cluster, and ECS service.
 Create the target group, ECS cluster, and ECS service.
 
 ---
+
+## Mar 27, 2026
+
+## Project 1 — Target Group
+
+### Summary
+
+Created the target group that the ECS service will register tasks into. Configuration matches the container port and health endpoint used by the application.
+
+---
+
+### Target Group Configuration
+
+| Detail | Value |
+|--------|-------|
+| Name | `aws-hosted-app-tg` |
+| Target type | `ip` |
+| Protocol | `HTTP` |
+| Port | `8080` |
+| Health check path | `/health` |
+| Success code | `200` |
+| Health check interval | `30` seconds |
+| Health check timeout | `5` seconds |
+| Healthy threshold | `5` |
+| Unhealthy threshold | `2` |
+| Status | Created ✅ |
+
+---
+
+### What This Unblocks
+
+- The ECS service can now register Fargate task IPs directly into this target group.
+- The health check path and port align with the application's `/health` endpoint on container port `8080`, so target registration and health checks should work without additional configuration changes.
+
+### Next Step
+
+Create the ECS cluster and ECS service, attaching the service to `aws-hosted-app-tg`.
