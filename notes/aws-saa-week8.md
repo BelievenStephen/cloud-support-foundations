@@ -168,3 +168,35 @@ Created the target group that the ECS service will register tasks into. Configur
 ### Next Step
 
 Create the ECS cluster and ECS service, attaching the service to `aws-hosted-app-tg`.
+
+---
+
+## Mar 28, 2026
+
+## Project 1 — ECS Cluster
+
+### Summary
+
+Created the ECS cluster that will host the Fargate service for Project 1.
+
+---
+
+### Cluster Configuration
+
+| Detail | Value |
+|--------|-------|
+| Cluster name | `aws-hosted-app-cluster` |
+| Status | Active ✅ |
+
+The cluster is currently empty, which is expected before the ECS service is created.
+
+---
+
+### What This Unblocks
+
+- The ECS service can now be created and attached to `aws-hosted-app-cluster`.
+- With the cluster, task definition, target group, and execution role all in place, ECS service creation is the next and final deployment step.
+
+### Next Step
+
+Create the ECS service inside `aws-hosted-app-cluster`, attaching it to `aws-hosted-app-tg` and the `aws-hosted-app:1` task definition.
