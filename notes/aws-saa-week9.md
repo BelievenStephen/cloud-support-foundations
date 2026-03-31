@@ -41,3 +41,36 @@ The task security group restricts inbound traffic to port `8080` from the ALB se
 Create the ALB with `aws-hosted-app-alb-sg`, then create the ECS service using these subnets and `aws-hosted-app-task-sg`.
 
 ---
+
+## Mar 31, 2026
+
+## Project 1 — ALB Creation
+
+### Summary
+
+Created the Application Load Balancer and configured the HTTP listener to forward traffic to the existing target group. The frontend load balancer path is now in place ahead of ECS service creation.
+
+---
+
+### ALB Configuration
+
+| Detail | Value |
+|--------|-------|
+| Name | `aws-hosted-app-alb` |
+| Listener port | `80` (HTTP) |
+| Security group | `aws-hosted-app-alb-sg` |
+| Subnets | `subnet-0b7f3fdc246069fbe`, `subnet-0ed1fa4a40bc62a26` |
+| Target group | `aws-hosted-app-tg` |
+| DNS name | `aws-hosted-app-alb-152549554.us-west-1.elb.amazonaws.com` |
+| Status | Created ✅ |
+
+---
+
+### What This Unblocks
+
+- The ALB is now in place with a listener on port `80` forwarding to `aws-hosted-app-tg`.
+- All prerequisites from the service creation checklist are now satisfied — the ECS service can be created in the next session.
+
+### Next Step
+
+Create the ECS service inside `aws-hosted-app-cluster`, attach it to `aws-hosted-app-tg`, and select the planned subnets and `aws-hosted-app-task-sg`.
