@@ -74,3 +74,48 @@ Created the Application Load Balancer and configured the HTTP listener to forwar
 ### Next Step
 
 Create the ECS service inside `aws-hosted-app-cluster`, attach it to `aws-hosted-app-tg`, and select the planned subnets and `aws-hosted-app-task-sg`.
+
+---
+
+## Apr 1, 2026
+
+## Project 1 — ECS Service Creation
+
+### Summary
+
+Created the ECS service and confirmed a task launched, registered into the target group, and reached a healthy state. Project 1 is now running as a live ECS Fargate service behind an ALB.
+
+---
+
+### Service Configuration
+
+| Detail | Value |
+|--------|-------|
+| Service name | `aws-hosted-app-service` |
+| Cluster | `aws-hosted-app-cluster` |
+| Task definition | `aws-hosted-app:2` |
+| Desired count | `1` |
+| Launch type | Fargate |
+| Subnets | `subnet-0b7f3fdc246069fbe`, `subnet-0ed1fa4a40bc62a26` |
+| Task security group | `aws-hosted-app-task-sg` |
+| Public IP | Enabled |
+
+---
+
+### Deployment Verification
+
+| Check | Result |
+|-------|--------|
+| Task launched | ✅ |
+| Target registered in `aws-hosted-app-tg` | ✅ |
+| Target health | Healthy ✅ |
+
+---
+
+### What This Unblocks
+
+- The service is running with a healthy registered target, meaning the full traffic path from ALB → target group → ECS task is ready to validate.
+
+### Next Step
+
+Validate the ALB endpoint by testing `GET /health` and `GET /` against `aws-hosted-app-alb-152549554.us-west-1.elb.amazonaws.com`.
