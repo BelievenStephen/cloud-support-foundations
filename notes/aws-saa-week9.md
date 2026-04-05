@@ -180,3 +180,89 @@ Project 1 is complete. The ECS Fargate service is running behind an ALB, registe
 
 ---
 
+## Apr 5, 2026
+
+## Project 1 — First Monitoring Alarms
+
+### Summary
+
+Created two CloudWatch alarms to monitor ALB health and target availability. These alarms provide immediate detection of infrastructure-level failures in the ECS service deployment.
+
+---
+
+### Alarm 1: ALB 5xx Errors
+
+**Alarm configuration:**
+
+| Detail | Value |
+|--------|-------|
+| Alarm name | `aws-hosted-app-alb-5xx-alarm` |
+| Metric | `HTTPCode_ELB_5XX_Count` |
+| Resource | `aws-hosted-app-alb` |
+| Namespace | `AWS/ApplicationELB` |
+| Statistic | Sum |
+| Threshold | `>= 1` for 1 datapoint within 1 minute |
+| Purpose | Detect ALB-generated 5xx responses |
+
+**What this catches:**
+- ALB cannot connect to healthy targets
+- No healthy targets available (503)
+- Target connection/response problems (502)
+- Network connectivity issues between ALB and targets
+
+---
+
+### Alarm 2: Healthy Host Count
+
+**Alarm configuration:**
+
+| Detail | Value |
+|--------|-------|
+| Alarm name | `aws-hosted-app-healthy-host-count-alarm` |
+| Metric | `HealthyHostCount` |
+| Resource | `aws-hosted-app-tg` |
+| Namespace | `AWS/ApplicationELB` |
+| Statistic | Minimum |
+| Threshold | `< 1` for 1 datapoint within 1 minute |
+| Purpose | Detect target group with no healthy targets |
+
+**What this catches:**
+- All ECS tasks failing health checks
+- Service scaled to zero
+- Tasks terminated or stopped
+- Health check misconfiguration preventing targets from becoming healthy
+
+---
+
+### Monitoring Coverage
+
+**Current alarm coverage:**
+
+| Failure Scenario | Detected By |
+|------------------|-------------|
+| All tasks unhealthy | `aws-hosted-app-healthy-host-count-alarm` ✅ |
+| ALB connectivity issues | `aws-hosted-app-alb-5xx-alarm` ✅ |
+| Target group empty | `aws-hosted-app-healthy-host-count-alarm` ✅ |
+| Health check failures | `aws-hosted-app-healthy-host-count-alarm` ✅ |
+| Application errors (target 5xx) | Not yet covered ⚠️ |
+| High latency | Not yet covered ⚠️ |
+
+---
+
+### What This Enables
+
+- **Immediate detection:** 1-minute evaluation period catches failures quickly
+- **Infrastructure focus:** Both alarms target infrastructure-layer issues (ALB/target health)
+- **Clear signal:** ALB 5xx + HealthyHostCount < 1 together indicate complete service outage
+
+---
+
+### Next Steps (Future Monitoring)
+
+**Potential additional alarms:**
+- `HTTPCode_Target_5XX_Count` - Application-level errors
+- `TargetResponseTime` - Latency degradation
+- `RequestCount` - Traffic anomalies
+- ECS service metrics - CPU/memory utilization
+
+---
