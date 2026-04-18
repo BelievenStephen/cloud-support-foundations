@@ -1,4 +1,4 @@
-# AWS SAA — Week 10
+# AWS SAA — Week 11
 
 ### Project 2 CloudTrail readiness check
 
@@ -64,3 +64,40 @@ The current stream matches this pattern. The task appears to be running normally
 ### What This Means for Centralized Log Planning
 
 CloudWatch Logs already provides a useful central source for inspecting application behavior in `us-west-1`. No additional log aggregation is needed to begin runbook and investigation work — the current log group is sufficient as a starting reference.
+
+---
+
+## Project 2 — Metric Readiness Notes
+*April 18, 2026*
+
+Confirmed ApplicationELB metrics in `us-west-1`.
+
+---
+
+### Metric Confirmation Results
+
+| Metric | Namespace | Status | Observed Behavior |
+|---|---|---|---|
+| `RequestCount` | Per AppELB Metrics | ✅ Confirmed | Recent datapoints visible — normal traffic reaching the ALB |
+| `TargetResponseTime` | Per AppELB Metrics | ✅ Confirmed | Recent datapoints with minor gaps and small spikes — values remain low, no distress signal |
+| `HealthyHostCount` | Per AppELB, per TG Metrics | ✅ Confirmed | Stable value of `1` — strong healthy-baseline signal for the current single target |
+| `HTTPCode_ELB_5XX_Count` | Per AppELB Metrics | ⚠️ Not surfaced | Not visible from current search view — recheck when building dashboard or alarm set |
+
+---
+
+### What Each Metric Helps Catch
+
+| Metric | What It Catches |
+|---|---|
+| `RequestCount` | Confirms whether traffic is reaching the ALB |
+| `TargetResponseTime` | Detects backend slowdown or degradation before full failure |
+| `HealthyHostCount` | Shows whether the target group still has healthy registered targets |
+| `HTTPCode_ELB_5XX_Count` | Catches ALB-generated 5xx failures — still an important failure-focused metric |
+
+---
+
+### What This Means for Dashboard and Alarm Setup
+
+- `RequestCount`, `TargetResponseTime`, and `HealthyHostCount` are confirmed candidates for the first Project 2 dashboard
+- `HealthyHostCount` at `1` is the clearest healthy-vs-failure signal available for the current single-target workload
+- `HTTPCode_ELB_5XX_Count` should be rechecked when building the dashboard or alarm set — it was not surfaced in this session but remains a required metric for the first alarm candidates defined in `project2-monitoring-starter.md`
